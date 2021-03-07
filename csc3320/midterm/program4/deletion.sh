@@ -1,0 +1,7 @@
+    #!/bin/sh
+        BOOK="address-book.txt"
+
+        # which line to delete
+                 read -p "Which name should I delete: " name 
+
+        sed -e  "/$name/d" temp.txt | tee $BOOK

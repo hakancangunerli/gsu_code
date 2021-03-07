@@ -1,0 +1,2905 @@
+SED(1)                                                                  User Commands                                                                 SED(1)
+
+NAME
+       sed - stream editor for filtering and transforming text
+
+SYNOPSIS
+       sed [OPTION]... {script-only-if-no-other-script} [input-file]...
+
+DESCRIPTION
+       Sed  is  a stream editor.  A stream editor is used to perform basic text transformations on an input stream (a file or input from a pipeline).  While
+       in some ways similar to an editor which permits scripted edits (such as ed), sed works by making only one pass over the input(s), and is consequently
+       more efficient.  But it is sed's ability to filter text in a pipeline which particularly distinguishes it from other types of editors.
+
+       -n, --quiet, --silent
+
+              suppress automatic printing of pattern space
+
+       --debug
+
+              annotate program execution
+
+       -e script, --expression=script
+
+              add the script to the commands to be executed
+
+       -f script-file, --file=script-file
+
+              add the contents of script-file to the commands to be executed
+
+       --follow-symlinks
+
+              follow symlinks when processing in place
+
+       -i[SUFFIX], --in-place[=SUFFIX]
+
+              edit files in place (makes backup if SUFFIX supplied)
+
+       -l N, --line-length=N
+
+              specify the desired line-wrap length for the `l' command
+
+       --posix
+
+              disable all GNU extensions.
+
+       -E, -r, --regexp-extended
+
+              use extended regular expressions in the script (for portability use POSIX -E).
+
+       -s, --separate
+
+              consider files as separate rather than as a single, continuous long stream.
+
+       --sandbox
+
+              operate in sandbox mode (disable e/r/w commands).
+
+       -u, --unbuffered
+
+              load minimal amounts of data from the input files and flush the output buffers more often
+
+       -z, --null-data
+
+              separate lines by NUL characters
+
+       --help
+              display this help and exit
+
+       --version
+              output version information and exit
+
+       If no -e, --expression, -f, or --file option is given, then the first non-option argument is taken as the sed script to interpret.  All remaining ar‐
+       guments are names of input files; if no input files are specified, then the standard input is read.
+
+       GNU sed home page: <https://www.gnu.org/software/sed/>.  General help using GNU software: <https://www.gnu.org/gethelp/>.   E-mail  bug  reports  to:
+       <bug-sed@gnu.org>.
+
+COMMAND SYNOPSIS
+       This  is  just  a brief synopsis of sed commands to serve as a reminder to those who already know sed; other documentation (such as the texinfo docu‐
+       ment) must be consulted for fuller descriptions.
+
+   Zero-address ``commands''
+       : label
+              Label for b and t commands.
+
+       #comment
+              The comment extends until the next newline (or the end of a -e script fragment).
+
+       }      The closing bracket of a { } block.
+
+   Zero- or One- address commands
+       =      Print the current line number.
+
+       a \
+
+       text   Append text, which has each embedded newline preceded by a backslash.
+
+       i \
+
+       text   Insert text, which has each embedded newline preceded by a backslash.
+
+       q [exit-code]
+              Immediately quit the sed script without processing any more input, except that if auto-print is not disabled the current pattern space will be
+              printed.  The exit code argument is a GNU extension.
+
+       Q [exit-code]
+              Immediately quit the sed script without processing any more input.  This is a GNU extension.
+
+       r filename
+              Append text read from filename.
+
+       R filename
+              Append a line read from filename.  Each invocation of the command reads a line from the file.  This is a GNU extension.
+
+   Commands which accept address ranges
+       {      Begin a block of commands (end with a }).
+
+       b label
+              Branch to label; if label is omitted, branch to end of script.
+
+       c \
+
+       text   Replace the selected lines with text, which has each embedded newline preceded by a backslash.
+
+       d      Delete pattern space.  Start next cycle.
+
+       D      If pattern space contains no newline, start a normal new cycle as if the d command was issued.  Otherwise, delete text in the pattern space up
+              to the first newline, and restart cycle with the resultant pattern space, without reading a new line of input.
+
+       h H    Copy/append pattern space to hold space.
+
+       g G    Copy/append hold space to pattern space.
+
+       l      List out the current line in a ``visually unambiguous'' form.
+
+       l width
+              List out the current line in a ``visually unambiguous'' form, breaking it at width characters.  This is a GNU extension.
+
+       n N    Read/append the next line of input into the pattern space.
+
+       p      Print the current pattern space.
+
+       P      Print up to the first embedded newline of the current pattern space.
+
+       s/regexp/replacement/
+              Attempt to match regexp against the pattern space.  If successful, replace that portion matched with replacement.  The replacement may contain
+              the  special  character  &  to refer to that portion of the pattern space which matched, and the special escapes \1 through \9 to refer to the
+              corresponding matching sub-expressions in the regexp.
+
+       t label
+              If a s/// has done a successful substitution since the last input line was read and since the last t or T command, then branch  to  label;  if
+              label is omitted, branch to end of script.
+
+       T label
+              If  no  s/// has done a successful substitution since the last input line was read and since the last t or T command, then branch to label; if
+              label is omitted, branch to end of script.  This is a GNU extension.
+
+       w filename
+              Write the current pattern space to filename.
+
+       W filename
+              Write the first line of the current pattern space to filename.  This is a GNU extension.
+
+       x      Exchange the contents of the hold and pattern spaces.
+
+       y/source/dest/
+              Transliterate the characters in the pattern space which appear in source to the corresponding character in dest.
+
+Addresses
+       Sed commands can be given with no addresses, in which case the command will be executed for all input lines; with one address, in which case the com‐
+       mand  will only be executed for input lines which match that address; or with two addresses, in which case the command will be executed for all input
+       lines which match the inclusive range of lines starting from the first address and continuing to the second address.  Three things to note about  ad‐
+       dress ranges: the syntax is addr1,addr2 (i.e., the addresses are separated by a comma); the line which addr1 matched will always be accepted, even if
+       addr2 selects an earlier line; and if addr2 is a regexp, it will not be tested against the line that addr1 matched.
+
+       After the address (or address-range), and before the command, a !  may be inserted, which specifies that the command shall only be  executed  if  the
+       address (or address-range) does not match.
+
+       The following address types are supported:
+
+       number Match only the specified line number (which increments cumulatively across files, unless the -s option is specified on the command line).
+
+       first~step
+              Match  every  step'th  line starting with line first.  For example, ``sed -n 1~2p'' will print all the odd-numbered lines in the input stream,
+              and the address 2~5 will match every fifth line, starting with the second.  first can be zero; in this case, sed operates as if it were  equal
+              to step.  (This is an extension.)
+
+       $      Match the last line.
+
+       /regexp/
+              Match  lines  matching the regular expression regexp.  Matching is performed on the current pattern space, which can be modified with commands
+              such as ``s///''.
+
+       \cregexpc
+              Match lines matching the regular expression regexp.  The c may be any character.
+
+       GNU sed also supports some special 2-address forms:
+
+       0,addr2
+              Start out in "matched first address" state, until addr2 is found.  This is similar to 1,addr2, except that if addr2  matches  the  very  first
+              line  of  input  the 0,addr2 form will be at the end of its range, whereas the 1,addr2 form will still be at the beginning of its range.  This
+              works only when addr2 is a regular expression.
+
+       addr1,+N
+              Will match addr1 and the N lines following addr1.
+
+       addr1,~N
+              Will match addr1 and the lines following addr1 until the next line whose input line number is a multiple of N.
+
+REGULAR EXPRESSIONS
+       POSIX.2 BREs should be supported, but they aren't completely because of performance problems.  The \n sequence in a regular  expression  matches  the
+       newline  character, and similarly for \a, \t, and other sequences.  The -E option switches to using extended regular expressions instead; it has been
+       supported for years by GNU sed, and is now included in POSIX.
+
+BUGS
+       E-mail bug reports to bug-sed@gnu.org.  Also, please include the output of ``sed --version'' in the body of your report if at all possible.
+
+AUTHOR
+       Written by Jay Fenlason, Tom Lord, Ken Pizzini, Paolo Bonzini, Jim Meyering,  and  Assaf  Gordon.   GNU  sed  home  page:  <https://www.gnu.org/soft‐
+       ware/sed/>.  General help using GNU software: <https://www.gnu.org/gethelp/>.  E-mail bug reports to: <bug-sed@gnu.org>.
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       awk(1), ed(1), grep(1), tr(1), perlre(1), sed.info, any of various books on sed, the sed FAQ (http://sed.sf.net/grabbag/tutorials/sedfaq.txt),
+       http://sed.sf.net/grabbag/.
+
+       The full documentation for sed is maintained as a Texinfo manual.  If the info and sed programs are properly installed at your site, the command
+
+              info sed
+
+       should give you access to the complete manual.
+
+sed 4.7                                                                 December 2018                                                                 SED(1)
+WC(1)                                                                   User Commands                                                                  WC(1)
+
+NAME
+       wc - print newline, word, and byte counts for each file
+
+SYNOPSIS
+       wc [OPTION]... [FILE]...
+       wc [OPTION]... --files0-from=F
+
+DESCRIPTION
+       Print  newline,  word,  and  byte counts for each FILE, and a total line if more than one FILE is specified.  A word is a non-zero-length sequence of
+       characters delimited by white space.
+
+       With no FILE, or when FILE is -, read standard input.
+
+       The options below may be used to select which counts are printed, always in the following order: newline, word, character, byte, maximum line length.
+
+       -c, --bytes
+              print the byte counts
+
+       -m, --chars
+              print the character counts
+
+       -l, --lines
+              print the newline counts
+
+       --files0-from=F
+              read input from the files specified by NUL-terminated names in file F; If F is - then read names from standard input
+
+       -L, --max-line-length
+              print the maximum display width
+
+       -w, --words
+              print the word counts
+
+       --help display this help and exit
+
+       --version
+              output version information and exit
+
+AUTHOR
+       Written by Paul Rubin and David MacKenzie.
+
+REPORTING BUGS
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report wc translation bugs to <https://translationproject.org/team/>
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       Full documentation at: <https://www.gnu.org/software/coreutils/wc>
+       or available locally via: info '(coreutils) wc invocation'
+
+GNU coreutils 8.30                                                     September 2019                                                                  WC(1)
+MKDIR(1)                                                                User Commands                                                               MKDIR(1)
+
+NAME
+       mkdir - make directories
+
+SYNOPSIS
+       mkdir [OPTION]... DIRECTORY...
+
+DESCRIPTION
+       Create the DIRECTORY(ies), if they do not already exist.
+
+       Mandatory arguments to long options are mandatory for short options too.
+
+       -m, --mode=MODE
+              set file mode (as in chmod), not a=rwx - umask
+
+       -p, --parents
+              no error if existing, make parent directories as needed
+
+       -v, --verbose
+              print a message for each created directory
+
+       -Z     set SELinux security context of each created directory to the default type
+
+       --context[=CTX]
+              like -Z, or if CTX is specified then set the SELinux or SMACK security context to CTX
+
+       --help display this help and exit
+
+       --version
+              output version information and exit
+
+AUTHOR
+       Written by David MacKenzie.
+
+REPORTING BUGS
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report mkdir translation bugs to <https://translationproject.org/team/>
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       mkdir(2)
+
+       Full documentation at: <https://www.gnu.org/software/coreutils/mkdir>
+       or available locally via: info '(coreutils) mkdir invocation'
+
+GNU coreutils 8.30                                                     September 2019                                                               MKDIR(1)
+CP(1)                                                                   User Commands                                                                  CP(1)
+
+NAME
+       cp - copy files and directories
+
+SYNOPSIS
+       cp [OPTION]... [-T] SOURCE DEST
+       cp [OPTION]... SOURCE... DIRECTORY
+       cp [OPTION]... -t DIRECTORY SOURCE...
+
+DESCRIPTION
+       Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.
+
+       Mandatory arguments to long options are mandatory for short options too.
+
+       -a, --archive
+              same as -dR --preserve=all
+
+       --attributes-only
+              don't copy the file data, just the attributes
+
+       --backup[=CONTROL]
+              make a backup of each existing destination file
+
+       -b     like --backup but does not accept an argument
+
+       --copy-contents
+              copy contents of special files when recursive
+
+       -d     same as --no-dereference --preserve=links
+
+       -f, --force
+              if an existing destination file cannot be opened, remove it and try again (this option is ignored when the -n option is also used)
+
+       -i, --interactive
+              prompt before overwrite (overrides a previous -n option)
+
+       -H     follow command-line symbolic links in SOURCE
+
+       -l, --link
+              hard link files instead of copying
+
+       -L, --dereference
+              always follow symbolic links in SOURCE
+
+       -n, --no-clobber
+              do not overwrite an existing file (overrides a previous -i option)
+
+       -P, --no-dereference
+              never follow symbolic links in SOURCE
+
+       -p     same as --preserve=mode,ownership,timestamps
+
+       --preserve[=ATTR_LIST]
+              preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
+
+       --no-preserve=ATTR_LIST
+              don't preserve the specified attributes
+
+       --parents
+              use full source file name under DIRECTORY
+
+       -R, -r, --recursive
+              copy directories recursively
+
+       --reflink[=WHEN]
+              control clone/CoW copies. See below
+
+       --remove-destination
+              remove each existing destination file before attempting to open it (contrast with --force)
+
+       --sparse=WHEN
+              control creation of sparse files. See below
+
+       --strip-trailing-slashes
+              remove any trailing slashes from each SOURCE argument
+
+       -s, --symbolic-link
+              make symbolic links instead of copying
+
+       -S, --suffix=SUFFIX
+              override the usual backup suffix
+
+       -t, --target-directory=DIRECTORY
+              copy all SOURCE arguments into DIRECTORY
+
+       -T, --no-target-directory
+              treat DEST as a normal file
+
+       -u, --update
+              copy only when the SOURCE file is newer than the destination file or when the destination file is missing
+
+       -v, --verbose
+              explain what is being done
+
+       -x, --one-file-system
+              stay on this file system
+
+       -Z     set SELinux security context of destination file to default type
+
+       --context[=CTX]
+              like -Z, or if CTX is specified then set the SELinux or SMACK security context to CTX
+
+       --help display this help and exit
+
+       --version
+              output version information and exit
+
+       By  default,  sparse SOURCE files are detected by a crude heuristic and the corresponding DEST file is made sparse as well.  That is the behavior se‐
+       lected by --sparse=auto.  Specify --sparse=always to create a sparse DEST file whenever the SOURCE file contains  a  long  enough  sequence  of  zero
+       bytes.  Use --sparse=never to inhibit creation of sparse files.
+
+       When  --reflink[=always]  is specified, perform a lightweight copy, where the data blocks are copied only when modified.  If this is not possible the
+       copy fails, or if --reflink=auto is specified, fall back to a standard copy.  Use --reflink=never to ensure a standard copy is performed.
+
+       The backup suffix is '~', unless set with --suffix or SIMPLE_BACKUP_SUFFIX.  The version control method may be selected via the  --backup  option  or
+       through the VERSION_CONTROL environment variable.  Here are the values:
+
+       none, off
+              never make backups (even if --backup is given)
+
+       numbered, t
+              make numbered backups
+
+       existing, nil
+              numbered if numbered backups exist, simple otherwise
+
+       simple, never
+              always make simple backups
+
+       As  a  special  case,  cp makes a backup of SOURCE when the force and backup options are given and SOURCE and DEST are the same name for an existing,
+       regular file.
+
+AUTHOR
+       Written by Torbjorn Granlund, David MacKenzie, and Jim Meyering.
+
+REPORTING BUGS
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report cp translation bugs to <https://translationproject.org/team/>
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       Full documentation at: <https://www.gnu.org/software/coreutils/cp>
+       or available locally via: info '(coreutils) cp invocation'
+
+GNU coreutils 8.30                                                     September 2019                                                                  CP(1)
+TAR(1)                                                                 GNU TAR Manual                                                                 TAR(1)
+
+NAME
+       tar - an archiving utility
+
+SYNOPSIS
+   Traditional usage
+       tar {A|c|d|r|t|u|x}[GnSkUWOmpsMBiajJzZhPlRvwo] [ARG...]
+
+   UNIX-style usage
+       tar -A [OPTIONS] ARCHIVE ARCHIVE
+
+       tar -c [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar -d [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar -t [-f ARCHIVE] [OPTIONS] [MEMBER...]
+
+       tar -r [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar -u [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar -x [-f ARCHIVE] [OPTIONS] [MEMBER...]
+
+   GNU-style usage
+       tar {--catenate|--concatenate} [OPTIONS] ARCHIVE ARCHIVE
+
+       tar --create [--file ARCHIVE] [OPTIONS] [FILE...]
+
+       tar {--diff|--compare} [--file ARCHIVE] [OPTIONS] [FILE...]
+
+       tar --delete [--file ARCHIVE] [OPTIONS] [MEMBER...]
+
+       tar --append [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar --list [-f ARCHIVE] [OPTIONS] [MEMBER...]
+
+       tar --test-label [--file ARCHIVE] [OPTIONS] [LABEL...]
+
+       tar --update [--file ARCHIVE] [OPTIONS] [FILE...]
+
+       tar --update [-f ARCHIVE] [OPTIONS] [FILE...]
+
+       tar {--extract|--get} [-f ARCHIVE] [OPTIONS] [MEMBER...]
+
+NOTE
+       This manpage is a short description of GNU tar.  For a detailed discussion, including examples and usage recommendations, refer to the GNU Tar Manual
+       available in texinfo format.  If the info reader and the tar documentation are properly installed on your system, the command
+
+           info tar
+
+       should give you access to the complete manual.
+
+       You can also view the manual using the info mode in emacs(1), or find it in various formats online at
+
+           http://www.gnu.org/software/tar/manual
+
+       If any discrepancies occur between this manpage and the GNU Tar Manual, the later shall be considered the authoritative source.
+
+DESCRIPTION
+       GNU tar is an archiving program designed to store multiple files in a single file (an archive), and to manipulate such archives.  The archive can  be
+       either  a regular file or a device (e.g. a tape drive, hence the name of the program, which stands for tape archiver), which can be located either on
+       the local or on a remote machine.
+
+   Option styles
+       Options to GNU tar can be given in three different styles.  In traditional style, the first argument is a cluster of option letters  and  all  subse‐
+       quent  arguments  supply  arguments to those options that require them.  The arguments are read in the same order as the option letters.  Any command
+       line words that remain after all options has been processed are treated as non-optional arguments: file or archive member names.
+
+       For example, the c option requires creating the archive, the v option requests the verbose operation, and the f option takes an  argument  that  sets
+       the  name  of the archive to operate upon.  The following command, written in the traditional style, instructs tar to store all files from the direc‐
+       tory /etc into the archive file etc.tar verbosely listing the files being archived:
+
+       tar cfv a.tar /etc
+
+       In UNIX or short-option style, each option letter is prefixed with a single dash, as in other command line utilities.  If an option  takes  argument,
+       the argument follows it, either as a separate command line word, or immediately following the option.  However, if the option takes an optional argu‐
+       ment, the argument must follow the option letter without any intervening whitespace, as in -g/tmp/snar.db.
+
+       Any number of options not taking arguments can be clustered together after a single dash, e.g. -vkp.  Options that take arguments (whether  mandatory
+       or optional), can appear at the end of such a cluster, e.g. -vkpf a.tar.
+
+       The example command above written in the short-option style could look like:
+
+       tar -cvf a.tar /etc
+       or
+       tar -c -v -f a.tar /etc
+
+       In  GNU  or long-option style, each option begins with two dashes and has a meaningful name, consisting of lower-case letters and dashes.  When used,
+       the long option can be abbreviated to its initial letters, provided that this does not create ambiguity.  Arguments to long options are supplied  ei‐
+       ther  as  a  separate  command line word, immediately following the option, or separated from the option by an equals sign with no intervening white‐
+       space.  Optional arguments must always use the latter method.
+
+       Here are several ways of writing the example command in this style:
+
+       tar --create --file a.tar --verbose /etc
+       or (abbreviating some options):
+       tar --cre --file=a.tar --verb /etc
+
+       The options in all three styles can be intermixed, although doing so with old options is not encouraged.
+
+   Operation mode
+       The options listed in the table below tell GNU tar what operation it is to perform.  Exactly one of them must be given.  Meaning of non-optional  ar‐
+       guments depends on the operation mode requested.
+
+       -A, --catenate, --concatenate
+              Append archive to the end of another archive.  The arguments are treated as the names of archives to append.  All archives must be of the same
+              format as the archive they are appended to, otherwise the resulting archive might be unusable with non-GNU  implementations  of  tar.   Notice
+              also  that when more than one archive is given, the members from archives other than the first one will be accessible in the resulting archive
+              only if using the -i (--ignore-zeros) option.
+
+              Compressed archives cannot be concatenated.
+
+       -c, --create
+              Create a new archive.  Arguments supply the names of the files to be archived.  Directories are archived recursively, unless  the  --no-recur‐
+              sion option is given.
+
+       -d, --diff, --compare
+              Find  differences between archive and file system.  The arguments are optional and specify archive members to compare.  If not given, the cur‐
+              rent working directory is assumed.
+
+       --delete
+              Delete from the archive.  The arguments supply names of the archive members to be removed.  At least one argument must be given.
+
+              This option does not operate on compressed archives.  There is no short option equivalent.
+
+       -r, --append
+              Append files to the end of an archive.  Arguments have the same meaning as for -c (--create).
+
+       -t, --list
+              List the contents of an archive.  Arguments are optional.  When given, they specify the names of the members to list.
+
+       --test-label
+              Test the archive volume label and exit.  When used without arguments, it prints the volume label (if any) and exits with status 0.   When  one
+              or  more  command  line arguments are given.  tar compares the volume label with each argument.  It exits with code 0 if a match is found, and
+              with code 1 otherwise.  No output is displayed, unless used together with the -v (--verbose) option.
+
+              There is no short option equivalent for this option.
+
+       -u, --update
+              Append files which are newer than the corresponding copy in the archive.  Arguments have the same meaning as with -c and -r options.   Notice,
+              that  newer files don't replace their old archive copies, but instead are appended to the end of archive.  The resulting archive can thus con‐
+              tain several members of the same name, corresponding to various versions of the same file.
+
+       -x, --extract, --get
+              Extract files from an archive.  Arguments are optional.  When given, they specify names of the archive members to be extracted.
+
+       --show-defaults
+              Show built-in defaults for various tar options and exit.  No arguments are allowed.
+
+       -?, --help
+              Display a short option summary and exit.  No arguments allowed.
+
+       --usage
+              Display a list of available options and exit.  No arguments allowed.
+
+       --version
+              Print program version and copyright information and exit.
+
+OPTIONS
+   Operation modifiers
+       --check-device
+              Check device numbers when creating incremental archives (default).
+
+       -g, --listed-incremental=FILE
+              Handle new GNU-format incremental backups.  FILE is the name of a snapshot file, where tar stores additional information which is used to  de‐
+              cide which files changed since the previous incremental dump and, consequently, must be dumped again.  If FILE does not exist when creating an
+              archive, it will be created and all files will be added to the resulting archive (the level 0 dump).  To create incremental archives  of  non-
+              zero level N, create a copy of the snapshot file created during the level N-1, and use it as FILE.
+
+              When  listing or extracting, the actual contents of FILE is not inspected, it is needed only due to syntactical requirements.  It is therefore
+              common practice to use /dev/null in its place.
+
+       --hole-detection=METHOD
+              Use METHOD to detect holes in sparse files.  This option implies --sparse.  Valid values for METHOD are seek and raw.  Default  is  seek  with
+              fallback to raw when not applicable.
+
+       -G, --incremental
+              Handle old GNU-format incremental backups.
+
+       --ignore-failed-read
+              Do not exit with nonzero on unreadable files.
+
+       --level=NUMBER
+              Set dump level for created listed-incremental archive.  Currently only --level=0 is meaningful: it instructs tar to truncate the snapshot file
+              before dumping, thereby forcing a level 0 dump.
+
+       -n, --seek
+              Assume the archive is seekable.  Normally tar determines automatically whether the archive can be seeked or not.  This option is intended  for
+              use  in  cases  when  such  recognition  fails.   It  takes  effect only if the archive is open for reading (e.g. with --list or --extract op‐
+              tions).
+
+       --no-check-device
+              Do not check device numbers when creating incremental archives.
+
+       --no-seek
+              Assume the archive is not seekable.
+
+       --occurrence[=N]
+              Process only the Nth occurrence of each file in the archive.  This option is valid only when used  with  one  of  the  following  subcommands:
+              --delete, --diff, --extract or --list and when a list of files is given either on the command line or via the -T option.  The default N is 1.
+
+       --restrict
+              Disable the use of some potentially harmful options.
+
+       --sparse-version=MAJOR[.MINOR]
+              Set  version of the sparse format to use (implies --sparse).  This option implies --sparse.  Valid argument values are 0.0, 0.1, and 1.0.  For
+              a detailed discussion of sparse formats, refer to the GNU Tar Manual, appendix D, "Sparse Formats".  Using info reader,  it  can  be  accessed
+              running the following command: info tar 'Sparse Formats'.
+
+       -S, --sparse
+              Handle  sparse  files  efficiently.   Some files in the file system may have segments which were actually never written (quite often these are
+              database files created by such systems as DBM).  When given this option, tar attempts to determine if the file is sparse  prior  to  archiving
+              it, and if so, to reduce the resulting archive size by not dumping empty parts of the file.
+
+   Overwrite control
+       These options control tar actions when extracting a file over an existing copy on disk.
+
+       -k, --keep-old-files
+              Don't replace existing files when extracting.
+
+       --keep-newer-files
+              Don't replace existing files that are newer than their archive copies.
+
+       --keep-directory-symlink
+              Don't replace existing symlinks to directories when extracting.
+
+       --no-overwrite-dir
+              Preserve metadata of existing directories.
+
+       --one-top-level[=DIR]
+              Extract  all  files into DIR, or, if used without argument, into a subdirectory named by the base name of the archive (minus standard compres‐
+              sion suffixes recognizable by --auto-compress).
+
+       --overwrite
+              Overwrite existing files when extracting.
+
+       --overwrite-dir
+              Overwrite metadata of existing directories when extracting (default).
+
+       --recursive-unlink
+              Recursively remove all files in the directory prior to extracting it.
+
+       --remove-files
+              Remove files from disk after adding them to the archive.
+
+       --skip-old-files
+              Don't replace existing files when extracting, silently skip over them.
+
+       -U, --unlink-first
+              Remove each file prior to extracting over it.
+
+       -W, --verify
+              Verify the archive after writing it.
+
+   Output stream selection
+       --ignore-command-error
+
+       Ignore subprocess exit codes.
+
+       --no-ignore-command-error
+              Treat non-zero exit codes of children as error (default).
+
+       -O, --to-stdout
+              Extract files to standard output.
+
+       --to-command=COMMAND
+              Pipe extracted files to COMMAND.  The argument is the pathname of an external program, optionally with command line  arguments.   The  program
+              will  be invoked and the contents of the file being extracted supplied to it on its standard output.  Additional data will be supplied via the
+              following environment variables:
+
+              TAR_FILETYPE
+                     Type of the file. It is a single letter with the following meaning:
+
+                             f           Regular file
+                             d           Directory
+                             l           Symbolic link
+                             h           Hard link
+                             b           Block device
+                             c           Character device
+
+                     Currently only regular files are supported.
+
+              TAR_MODE
+                     File mode, an octal number.
+
+              TAR_FILENAME
+                     The name of the file.
+
+              TAR_REALNAME
+                     Name of the file as stored in the archive.
+
+              TAR_UNAME
+                     Name of the file owner.
+
+              TAR_GNAME
+                     Name of the file owner group.
+
+              TAR_ATIME
+                     Time of last access. It is a decimal number, representing seconds since the Epoch.  If the archive provides times with nanosecond  pre‐
+                     cision, the nanoseconds are appended to the timestamp after a decimal point.
+
+              TAR_MTIME
+                     Time of last modification.
+
+              TAR_CTIME
+                     Time of last status change.
+
+              TAR_SIZE
+                     Size of the file.
+
+              TAR_UID
+                     UID of the file owner.
+
+              TAR_GID
+                     GID of the file owner.
+
+              Additionally, the following variables contain information about tar operation mode and the archive being processed:
+
+              TAR_VERSION
+                     GNU tar version number.
+
+              TAR_ARCHIVE
+                     The name of the archive tar is processing.
+
+              TAR_BLOCKING_FACTOR
+                     Current blocking factor, i.e. number of 512-byte blocks in a record.
+
+              TAR_VOLUME
+                     Ordinal number of the volume tar is processing (set if reading a multi-volume archive).
+
+              TAR_FORMAT
+                     Format of the archive being processed.  One of: gnu, oldgnu, posix, ustar, v7.  TAR_SUBCOMMAND A short option (with a leading dash) de‐
+                     scribing the operation tar is executing.
+
+   Handling of file attributes
+       --atime-preserve[=METHOD]
+              Preserve access times on dumped files, either by restoring the times after reading (METHOD=replace, this is the default) or by not setting the
+              times in the first place (METHOD=system)
+
+       --delay-directory-restore
+              Delay  setting  modification times and permissions of extracted directories until the end of extraction.  Use this option when extracting from
+              an archive which has unusual member ordering.
+
+       --group=NAME[:GID]
+              Force NAME as group for added files.  If GID is not supplied, NAME can be either a user name or numeric GID.  In this case  the  missing  part
+              (GID or name) will be inferred from the current host's group database.
+
+              When used with --group-map=FILE, affects only those files whose owner group is not listed in FILE.
+
+       --group-map=FILE
+              Read group translation map from FILE.  Empty lines are ignored.  Comments are introduced with # sign and extend to the end of line.  Each non-
+              empty line in FILE defines translation for a single group.  It must consist of two fields, delimited by any amount of whitespace:
+
+              OLDGRP NEWGRP[:NEWGID]
+
+              OLDGRP is either a valid group name or a GID prefixed with +.  Unless NEWGID is supplied, NEWGRP must also be either a valid group name  or  a
+              +GID.  Otherwise, both NEWGRP and NEWGID need not be listed in the system group database.
+
+              As a result, each input file with owner group OLDGRP will be stored in archive with owner group NEWGRP and GID NEWGID.
+
+       --mode=CHANGES
+              Force symbolic mode CHANGES for added files.
+
+       --mtime=DATE-OR-FILE
+              Set  mtime  for  added  files.  DATE-OR-FILE is either a date/time in almost arbitrary format, or the name of an existing file.  In the latter
+              case the mtime of that file will be used.
+
+       -m, --touch
+              Don't extract file modified time.
+
+       --no-delay-directory-restore
+              Cancel the effect of the prior --delay-directory-restore option.
+
+       --no-same-owner
+              Extract files as yourself (default for ordinary users).
+
+       --no-same-permissions
+              Apply the user's umask when extracting permissions from the archive (default for ordinary users).
+
+       --numeric-owner
+              Always use numbers for user/group names.
+
+       --owner=NAME[:UID]
+              Force NAME as owner for added files.  If UID is not supplied, NAME can be either a user name or numeric UID.  In this case  the  missing  part
+              (UID or name) will be inferred from the current host's user database.
+
+              When used with --owner-map=FILE, affects only those files whose owner is not listed in FILE.
+
+       --owner-map=FILE
+              Read owner translation map from FILE.  Empty lines are ignored.  Comments are introduced with # sign and extend to the end of line.  Each non-
+              empty line in FILE defines translation for a single UID.  It must consist of two fields, delimited by any amount of whitespace:
+
+              OLDUSR NEWUSR[:NEWUID]
+
+              OLDUSR is either a valid user name or a UID prefixed with +.  Unless NEWUID is supplied, NEWUSR must also be either a valid  user  name  or  a
+              +UID.  Otherwise, both NEWUSR and NEWUID need not be listed in the system user database.
+
+              As a result, each input file owned by OLDUSR will be stored in archive with owner name NEWUSR and UID NEWUID.
+
+       -p, --preserve-permissions, --same-permissions
+              extract information about file permissions (default for superuser)
+
+       --preserve
+              Same as both -p and -s.
+
+       --same-owner
+              Try extracting files with the same ownership as exists in the archive (default for superuser).
+
+       -s, --preserve-order, --same-order
+              Sort names to extract to match archive
+
+       --sort=ORDER
+              When creating an archive, sort directory entries according to ORDER, which is one of none, name, or inode.
+
+              The default is --sort=none, which stores archive members in the same order as returned by the operating system.
+
+              Using --sort=name ensures the member ordering in the created archive is uniform and reproducible.
+
+              Using --sort=inode reduces the number of disk seeks made when creating the archive and thus can considerably speed up archivation.  This sort‐
+              ing order is supported only if the underlying system provides the necessary information.
+
+   Extended file attributes
+       --acls Enable POSIX ACLs support.
+
+       --no-acls
+              Disable POSIX ACLs support.
+
+       --selinux
+              Enable SELinux context support.
+
+       --no-selinux
+              Disable SELinux context support.
+
+       --xattrs
+              Enable extended attributes support.
+
+       --no-xattrs
+              Disable extended attributes support.
+
+       --xattrs-exclude=PATTERN
+              Specify the exclude pattern for xattr keys.  PATTERN is a POSIX regular expression, e.g. --xattrs-exclude='^user.', to exclude attributes from
+              the user namespace.
+
+       --xattrs-include=PATTERN
+              Specify the include pattern for xattr keys.  PATTERN is a POSIX regular expression.
+
+   Device selection and switching
+       -f, --file=ARCHIVE
+              Use  archive  file or device ARCHIVE.  If this option is not given, tar will first examine the environment variable `TAPE'.  If it is set, its
+              value will be used as the archive name.  Otherwise, tar will assume the compiled-in default.  The default value can be inspected either  using
+              the --show-defaults option, or at the end of the tar --help output.
+
+              An archive name that has a colon in it specifies a file or device on a remote machine.  The part before the colon is taken as the machine name
+              or IP address, and the part after it as the file or device pathname, e.g.:
+
+              --file=remotehost:/dev/sr0
+
+              An optional username can be prefixed to the hostname, placing a @ sign between them.
+
+              By default, the remote host is accessed via the rsh(1) command.  Nowadays it is common to use ssh(1) instead.  You can do  so  by  giving  the
+              following command line option:
+
+              --rsh-command=/usr/bin/ssh
+
+              The  remote machine should have the rmt(8) command installed.  If its pathname does not match tar's default, you can inform tar about the cor‐
+              rect pathname using the --rmt-command option.
+
+       --force-local
+              Archive file is local even if it has a colon.
+
+       -F, --info-script=COMMAND, --new-volume-script=COMMAND
+              Run COMMAND at the end of each tape (implies -M).  The command can include arguments.  When started, it will inherit  tar's  environment  plus
+              the following variables:
+
+              TAR_VERSION
+                     GNU tar version number.
+
+              TAR_ARCHIVE
+                     The name of the archive tar is processing.
+
+              TAR_BLOCKING_FACTOR
+                     Current blocking factor, i.e. number of 512-byte blocks in a record.
+
+              TAR_VOLUME
+                     Ordinal number of the volume tar is processing (set if reading a multi-volume archive).
+
+              TAR_FORMAT
+                     Format of the archive being processed.  One of: gnu, oldgnu, posix, ustar, v7.
+
+              TAR_SUBCOMMAND
+                     A short option (with a leading dash) describing the operation tar is executing.
+
+              TAR_FD File descriptor which can be used to communicate the new volume name to tar.
+
+              If the info script fails, tar exits; otherwise, it begins writing the next volume.
+
+       -L, --tape-length=N
+              Change  tape after writing Nx1024 bytes.  If N is followed by a size suffix (see the subsection Size suffixes below), the suffix specifies the
+              multiplicative factor to be used instead of 1024.
+
+              This option implies -M.
+
+       -M, --multi-volume
+              Create/list/extract multi-volume archive.
+
+       --rmt-command=COMMAND
+              Use COMMAND instead of rmt when accessing remote archives.  See the description of the -f option, above.
+
+       --rsh-command=COMMAND
+              Use COMMAND instead of rsh when accessing remote archives.  See the description of the -f option, above.
+
+       --volno-file=FILE
+              When this option is used in conjunction with --multi-volume, tar will keep track of which volume of a multi-volume archive it  is  working  in
+              FILE.
+
+   Device blocking
+       -b, --blocking-factor=BLOCKS
+              Set record size to BLOCKSx512 bytes.
+
+       -B, --read-full-records
+              When listing or extracting, accept incomplete input records after end-of-file marker.
+
+       -i, --ignore-zeros
+              Ignore  zeroed  blocks  in  archive.  Normally two consecutive 512-blocks filled with zeroes mean EOF and tar stops reading after encountering
+              them.  This option instructs it to read further and is useful when reading archives created with the -A option.
+
+       --record-size=NUMBER
+              Set record size.  NUMBER is the number of bytes per record.  It must be multiple of 512.  It can can be suffixed  with  a  size  suffix,  e.g.
+              --record-size=10K, for 10 Kilobytes.  See the subsection Size suffixes, for a list of valid suffixes.
+
+   Archive format selection
+       -H, --format=FORMAT
+              Create archive of the given format.  Valid formats are:
+
+              gnu    GNU tar 1.13.x format
+
+              oldgnu GNU format as per tar <= 1.12.
+
+              pax, posix
+                     POSIX 1003.1-2001 (pax) format.
+
+              ustar  POSIX 1003.1-1988 (ustar) format.
+
+              v7     Old V7 tar format.
+
+       --old-archive, --portability
+              Same as --format=v7.
+
+       --pax-option=keyword[[:]=value][,keyword[[:]=value]]...
+              Control pax keywords when creating PAX archives (-H pax).  This option is equivalent to the -o option of the pax(1)utility.
+
+       --posix
+              Same as --format=posix.
+
+       -V, --label=TEXT
+              Create archive with volume name TEXT.  If listing or extracting, use TEXT as a globbing pattern for volume name.
+
+   Compression options
+       -a, --auto-compress
+              Use archive suffix to determine the compression program.
+
+       -I, --use-compress-program=COMMAND
+              Filter data through COMMAND.  It must accept the -d option, for decompression.  The argument can contain command line options.
+
+       -j, --bzip2
+              Filter the archive through bzip2(1).
+
+       -J, --xz
+              Filter the archive through xz(1).
+
+       --lzip Filter the archive through lzip(1).
+
+       --lzma Filter the archive through lzma(1).
+
+       --lzop Filter the archive through lzop(1).
+
+       --no-auto-compress
+              Do not use archive suffix to determine the compression program.
+
+       -z, --gzip, --gunzip, --ungzip
+              Filter the archive through gzip(1).
+
+       -Z, --compress, --uncompress
+              Filter the archive through compress(1).
+
+       --zstd Filter the archive through zstd(1).
+
+   Local file selection
+       --add-file=FILE
+              Add FILE to the archive (useful if its name starts with a dash).
+
+       --backup[=CONTROL]
+              Backup before removal.  The CONTROL argument, if supplied, controls the backup policy.  Its valid values are:
+
+              none, off
+                     Never make backups.
+
+              t, numbered
+                     Make numbered backups.
+
+              nil, existing
+                     Make numbered backups if numbered backups exist, simple backups otherwise.
+
+              never, simple
+                     Always make simple backups
+
+              If CONTROL is not given, the value is taken from the VERSION_CONTROL environment variable.  If it is not set, existing is assumed.
+
+       -C, --directory=DIR
+              Change to DIR before performing any operations.  This option is order-sensitive, i.e. it affects all options that follow.
+
+       --exclude=PATTERN
+              Exclude files matching PATTERN, a glob(3)-style wildcard pattern.
+
+       --exclude-backups
+              Exclude backup and lock files.
+
+       --exclude-caches
+              Exclude contents of directories containing file CACHEDIR.TAG, except for the tag file itself.
+
+       --exclude-caches-all
+              Exclude directories containing file CACHEDIR.TAG and the file itself.
+
+       --exclude-caches-under
+              Exclude everything under directories containing CACHEDIR.TAG
+
+       --exclude-ignore=FILE
+              Before  dumping  a directory, see if it contains FILE.  If so, read exclusion patterns from this file.  The patterns affect only the directory
+              itself.
+
+       --exclude-ignore-recursive=FILE
+              Same as --exclude-ignore, except that patterns from FILE affect both the directory and all its subdirectories.
+
+       --exclude-tag=FILE
+              Exclude contents of directories containing FILE, except for FILE itself.
+
+       --exclude-tag-all=FILE
+              Exclude directories containing FILE.
+
+       --exclude-tag-under=FILE
+              Exclude everything under directories containing FILE.
+
+       --exclude-vcs
+              Exclude version control system directories.
+
+       --exclude-vcs-ignores
+              Exclude files that match patterns read from VCS-specific ignore files.  Supported files are: .cvsignore, .gitignore,  .bzrignore,  and  .hgig‐
+              nore.
+
+       -h, --dereference
+              Follow symlinks; archive and dump the files they point to.
+
+       --hard-dereference
+              Follow hard links; archive and dump the files they refer to.
+
+       -K, --starting-file=MEMBER
+              Begin at the given member in the archive.
+
+       --newer-mtime=DATE
+              Work  on files whose data changed after the DATE.  If DATE starts with / or . it is taken to be a file name; the mtime of that file is used as
+              the date.
+
+       --no-null
+              Disable the effect of the previous --null option.
+
+       --no-recursion
+              Avoid descending automatically in directories.
+
+       --no-unquote
+              Do not unquote input file or member names.
+
+       --no-verbatim-files-from
+              Treat each line read from a file list as if it were supplied in the command line.  I.e., leading and trailing whitespace is  removed  and,  if
+              the resulting string begins with a dash, it is treated as tar command line option.
+
+              This is the default behavior.  The --no-verbatim-files-from option is provided as a way to restore it after --verbatim-files-from option.
+
+              This  option  is  positional:  it  affects all --files-from options that occur after it in, until --verbatim-files-from option or end of line,
+              whichever occurs first.
+
+              It is implied by the --no-null option.
+
+       --null Instruct subsequent -T options to read null-terminated names verbatim (disables special handling of names that start with a dash).
+
+              See also --verbatim-files-from.
+
+       -N, --newer=DATE, --after-date=DATE
+              Only store files newer than DATE.  If DATE starts with / or . it is taken to be a file name; the ctime of that file is used as the date.
+
+       --one-file-system
+              Stay in local file system when creating archive.
+
+       -P, --absolute-names
+              Don't strip leading slashes from file names when creating archives.
+
+       --recursion
+              Recurse into directories (default).
+
+       --suffix=STRING
+              Backup before removal, override usual suffix.  Default suffix is ~, unless overridden by environment variable SIMPLE_BACKUP_SUFFIX.
+
+       -T, --files-from=FILE
+              Get names to extract or create from FILE.
+
+              Unless specified otherwise, the FILE must contain a list of names separated by ASCII LF (i.e. one name per line).  The names read are  handled
+              the  same way as command line arguments.  They undergo quote removal and word splitting, and any string that starts with a - is handled as tar
+              command line option.
+
+              If this behavior is undesirable, it can be turned off using the --verbatim-files-from option.
+
+              The --null option instructs tar that the names in FILE are separated by ASCII NUL character, instead of LF.  It is useful if the list is  gen‐
+              erated by find(1) -print0 predicate.
+
+       --unquote
+              Unquote file or member names (default).
+
+       --verbatim-files-from
+              Treat  each  line obtained from a file list as a file name, even if it starts with a dash.  File lists are supplied with the --files-from (-T)
+              option.  The default behavior is to handle names supplied in file lists as if they were typed in the command line,  i.e.  any  names  starting
+              with a dash are treated as tar options.  The --verbatim-files-from option disables this behavior.
+
+              This option affects all --files-from options that occur after it in the command line.  Its effect is reverted by the --no-verbatim-files-from}
+              option.
+
+              This option is implied by the --null option.
+
+              See also --add-file.
+
+       -X, --exclude-from=FILE
+              Exclude files matching patterns listed in FILE.
+
+   File name transformations
+       --strip-components=NUMBER
+              Strip NUMBER leading components from file names on extraction.
+
+       --transform=EXPRESSION, --xform=EXPRESSION
+              Use sed replace EXPRESSION to transform file names.
+
+   File name matching options
+       These options affect both exclude and include patterns.
+
+       --anchored
+              Patterns match file name start.
+
+       --ignore-case
+              Ignore case.
+
+       --no-anchored
+              Patterns match after any / (default for exclusion).
+
+       --no-ignore-case
+              Case sensitive matching (default).
+
+       --no-wildcards
+              Verbatim string matching.
+
+       --no-wildcards-match-slash
+              Wildcards do not match /.
+
+       --wildcards
+              Use wildcards (default for exclusion).
+
+       --wildcards-match-slash
+              Wildcards match / (default for exclusion).
+
+   Informative output
+       --checkpoint[=N]
+              Display progress messages every Nth record (default 10).
+
+       --checkpoint-action=ACTION
+              Run ACTION on each checkpoint.
+
+       --clamp-mtime
+              Only set time when the file is more recent than what was given with --mtime.
+
+       --full-time
+              Print file time to its full resolution.
+
+       --index-file=FILE
+              Send verbose output to FILE.
+
+       -l, --check-links
+              Print a message if not all links are dumped.
+
+       --no-quote-chars=STRING
+              Disable quoting for characters from STRING.
+
+       --quote-chars=STRING
+              Additionally quote characters from STRING.
+
+       --quoting-style=STYLE
+              Set quoting style for file and member names.  Valid values for STYLE are literal, shell, shell-always, c, c-maybe, escape, locale, clocale.
+
+       -R, --block-number
+              Show block number within archive with each message.
+
+       --show-omitted-dirs
+              When listing or extracting, list each directory that does not match search criteria.
+
+       --show-transformed-names, --show-stored-names
+              Show file or archive names after transformation by --strip and --transform options.
+
+       --totals[=SIGNAL]
+              Print total bytes after processing the archive.  If SIGNAL is given, print total bytes when this signal is delivered.   Allowed  signals  are:
+              SIGHUP, SIGQUIT, SIGINT, SIGUSR1, and SIGUSR2.  The SIG prefix can be omitted.
+
+       --utc  Print file modification times in UTC.
+
+       -v, --verbose
+              Verbosely list files processed.
+
+       --warning=KEYWORD
+              Enable or disable warning messages identified by KEYWORD.  The messages are suppressed if KEYWORD is prefixed with no- and enabled otherwise.
+
+              Multiple --warning messages accumulate.
+
+              Keywords controlling general tar operation:
+
+              all    Enable all warning messages.  This is the default.
+
+              none   Disable all warning messages.
+
+              filename-with-nuls
+                     "%s: file name read contains nul character"
+
+              alone-zero-block
+                     "A lone zero block at %s"
+
+              Keywords applicable for tar --create:
+
+              cachedir
+                     "%s: contains a cache directory tag %s; %s"
+
+              file-shrank
+                     "%s: File shrank by %s bytes; padding with zeros"
+
+              xdev   "%s: file is on a different filesystem; not dumped"
+
+              file-ignored
+                     "%s: Unknown file type; file ignored"
+                     "%s: socket ignored"
+                     "%s: door ignored"
+
+              file-unchanged
+                     "%s: file is unchanged; not dumped"
+
+              ignore-archive
+                     "%s: file is the archive; not dumped"
+
+              file-removed
+                     "%s: File removed before we read it"
+
+              file-changed
+                     "%s: file changed as we read it"
+
+              failed-read
+                     Suppresses warnings about unreadable files or directories. This keyword applies only if used together with the --ignore-failed-read op‐
+                     tion.
+
+              Keywords applicable for tar --extract:
+
+              existing-file
+                     "%s: skipping existing file"
+
+              timestamp
+                     "%s: implausibly old time stamp %s"
+                     "%s: time stamp %s is %s s in the future"
+
+              contiguous-cast
+                     "Extracting contiguous files as regular files"
+
+              symlink-cast
+                     "Attempting extraction of symbolic links as hard links"
+
+              unknown-cast
+                     "%s: Unknown file type '%c', extracted as normal file"
+
+              ignore-newer
+                     "Current %s is newer or same age"
+
+              unknown-keyword
+                     "Ignoring unknown extended header keyword '%s'"
+
+              decompress-program
+                     Controls verbose description of failures occurring when trying to run alternative decompressor programs.  This warning is  disabled  by
+                     default (unless --verbose is used).  A common example of what you can get when using this warning is:
+
+                     $ tar --warning=decompress-program -x -f archive.Z
+                     tar (child): cannot run compress: No such file or directory
+                     tar (child): trying gzip
+
+                     This means that tar first tried to decompress archive.Z using compress, and, when that failed, switched to gzip.
+
+              record-size
+                     "Record size = %lu blocks"
+
+              Keywords controlling incremental extraction:
+
+              rename-directory
+                     "%s: Directory has been renamed from %s"
+                     "%s: Directory has been renamed"
+
+              new-directory
+                     "%s: Directory is new"
+
+              xdev   "%s: directory is on a different device: not purging"
+
+              bad-dumpdir
+                     "Malformed dumpdir: 'X' never used"
+
+       -w, --interactive, --confirmation
+              Ask for confirmation for every action.
+
+   Compatibility options
+       -o     When creating, same as --old-archive.  When extracting, same as --no-same-owner.
+
+   Size suffixes
+               Suffix    Units                   Byte Equivalent
+               b         Blocks                  SIZE x 512
+               B         Kilobytes               SIZE x 1024
+               c         Bytes                   SIZE
+               G         Gigabytes               SIZE x 1024^3
+               K         Kilobytes               SIZE x 1024
+               k         Kilobytes               SIZE x 1024
+               M         Megabytes               SIZE x 1024^2
+               P         Petabytes               SIZE x 1024^5
+               T         Terabytes               SIZE x 1024^4
+               w         Words                   SIZE x 2
+
+RETURN VALUE
+       Tar exit code indicates whether it was able to successfully perform the requested operation, and if not, what kind of error occurred.
+
+       0      Successful termination.
+
+       1      Some  files  differ.  If tar was invoked with the --compare (--diff, -d) command line option, this means that some files in the archive differ
+              from their disk counterparts.  If tar was given one of the --create, --append or --update options, this exit code means that some  files  were
+              changed while being archived and so the resulting archive does not contain the exact copy of the file set.
+
+       2      Fatal error.  This means that some fatal, unrecoverable error occurred.
+
+       If a subprocess that had been invoked by tar exited with a nonzero exit code, tar itself exits with that code as well.  This can happen, for example,
+       if a compression option (e.g. -z) was used and the external compressor program failed.  Another example is rmt failure during backup to a remote  de‐
+       vice.
+
+SEE ALSO
+       bzip2(1), compress(1), gzip(1), lzma(1), lzop(1), rmt(8), symlink(7), xz(1).
+
+       Complete tar manual: run info tar or use emacs(1) info mode to read it.
+
+       Online copies of GNU tar documentation in various formats can be found at:
+
+           http://www.gnu.org/software/tar/manual
+
+BUG REPORTS
+       Report bugs to <bug-tar@gnu.org>.
+
+COPYRIGHT
+       Copyright © 2013 Free Software Foundation, Inc.
+       License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+TAR                                                                   November 16, 2017                                                               TAR(1)
+KILL(1)                                                                 User Commands                                                                KILL(1)
+
+NAME
+       kill - send a signal to a process
+
+SYNOPSIS
+       kill [options] <pid> [...]
+
+DESCRIPTION
+       The default signal for kill is TERM.  Use -l or -L to list available signals.  Particularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.
+       Alternate signals may be specified in three ways: -9, -SIGKILL or -KILL.  Negative PID values may be used to choose whole  process  groups;  see  the
+       PGID column in ps command output.  A PID of -1 is special; it indicates all processes except the kill process itself and init.
+
+OPTIONS
+       <pid> [...]
+              Send signal to every <pid> listed.
+
+       -<signal>
+       -s <signal>
+       --signal <signal>
+              Specify the signal to be sent.  The signal can be specified by using name or number.  The behavior of signals is explained in signal(7) manual
+              page.
+
+       -l, --list [signal]
+              List signal names.  This option has optional argument, which will convert signal number to signal name, or other way round.
+
+       -L, --table
+              List signal names in a nice table.
+
+       NOTES  Your shell (command line interpreter) may have a built-in kill command.  You may need to run the command described here as /bin/kill to  solve
+              the conflict.
+
+EXAMPLES
+       kill -9 -1
+              Kill all processes you can kill.
+
+       kill -l 11
+              Translate number 11 into a signal name.
+
+       kill -L
+              List the available signal choices in a nice table.
+
+       kill 123 543 2341 3453
+              Send the default signal, SIGTERM, to all those processes.
+
+SEE ALSO
+       kill(2), killall(1), nice(1), pkill(1), renice(1), signal(7), skill(1)
+
+STANDARDS
+       This command meets appropriate standards.  The -L flag is Linux-specific.
+
+AUTHOR
+       Albert  Cahalan  ⟨albert@users.sf.net⟩  wrote kill in 1999 to replace a bsdutils one that was not standards compliant.  The util-linux one might also
+       work correctly.
+
+REPORTING BUGS
+       Please send bug reports to ⟨procps@freelists.org⟩
+
+procps-ng                                                                2018-05-31                                                                  KILL(1)
+SORT(1)                                                                 User Commands                                                                SORT(1)
+
+NAME
+       sort - sort lines of text files
+
+SYNOPSIS
+       sort [OPTION]... [FILE]...
+       sort [OPTION]... --files0-from=F
+
+DESCRIPTION
+       Write sorted concatenation of all FILE(s) to standard output.
+
+       With no FILE, or when FILE is -, read standard input.
+
+       Mandatory arguments to long options are mandatory for short options too.  Ordering options:
+
+       -b, --ignore-leading-blanks
+              ignore leading blanks
+
+       -d, --dictionary-order
+              consider only blanks and alphanumeric characters
+
+       -f, --ignore-case
+              fold lower case to upper case characters
+
+       -g, --general-numeric-sort
+              compare according to general numerical value
+
+       -i, --ignore-nonprinting
+              consider only printable characters
+
+       -M, --month-sort
+              compare (unknown) < 'JAN' < ... < 'DEC'
+
+       -h, --human-numeric-sort
+              compare human readable numbers (e.g., 2K 1G)
+
+       -n, --numeric-sort
+              compare according to string numerical value
+
+       -R, --random-sort
+              shuffle, but group identical keys.  See shuf(1)
+
+       --random-source=FILE
+              get random bytes from FILE
+
+       -r, --reverse
+              reverse the result of comparisons
+
+       --sort=WORD
+              sort according to WORD: general-numeric -g, human-numeric -h, month -M, numeric -n, random -R, version -V
+
+       -V, --version-sort
+              natural sort of (version) numbers within text
+
+       Other options:
+
+       --batch-size=NMERGE
+              merge at most NMERGE inputs at once; for more use temp files
+
+       -c, --check, --check=diagnose-first
+              check for sorted input; do not sort
+
+       -C, --check=quiet, --check=silent
+              like -c, but do not report first bad line
+
+       --compress-program=PROG
+              compress temporaries with PROG; decompress them with PROG -d
+
+       --debug
+              annotate the part of the line used to sort, and warn about questionable usage to stderr
+
+       --files0-from=F
+              read input from the files specified by NUL-terminated names in file F; If F is - then read names from standard input
+
+       -k, --key=KEYDEF
+              sort via a key; KEYDEF gives location and type
+
+       -m, --merge
+              merge already sorted files; do not sort
+
+       -o, --output=FILE
+              write result to FILE instead of standard output
+
+       -s, --stable
+              stabilize sort by disabling last-resort comparison
+
+       -S, --buffer-size=SIZE
+              use SIZE for main memory buffer
+
+       -t, --field-separator=SEP
+              use SEP instead of non-blank to blank transition
+
+       -T, --temporary-directory=DIR
+              use DIR for temporaries, not $TMPDIR or /tmp; multiple options specify multiple directories
+
+       --parallel=N
+              change the number of sorts run concurrently to N
+
+       -u, --unique
+              with -c, check for strict ordering; without -c, output only the first of an equal run
+
+       -z, --zero-terminated
+              line delimiter is NUL, not newline
+
+       --help display this help and exit
+
+       --version
+              output version information and exit
+
+       KEYDEF  is  F[.C][OPTS][,F[.C][OPTS]] for start and stop position, where F is a field number and C a character position in the field; both are origin
+       1, and the stop position defaults to the line's end.  If neither -t nor -b is in effect, characters in a field are counted from the beginning of  the
+       preceding  whitespace.  OPTS is one or more single-letter ordering options [bdfgiMhnRrV], which override global ordering options for that key.  If no
+       key is given, use the entire line as the key.  Use --debug to diagnose incorrect key usage.
+
+       SIZE may be followed by the following multiplicative suffixes: % 1% of memory, b 1, K 1024 (default), and so on for M, G, T, P, E, Z, Y.
+
+       *** WARNING *** The locale specified by the environment affects sort order.  Set LC_ALL=C to get the traditional sort order  that  uses  native  byte
+       values.
+
+AUTHOR
+       Written by Mike Haertel and Paul Eggert.
+
+REPORTING BUGS
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report sort translation bugs to <https://translationproject.org/team/>
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       shuf(1), uniq(1)
+
+       Full documentation at: <https://www.gnu.org/software/coreutils/sort>
+       or available locally via: info '(coreutils) sort invocation'
+
+GNU coreutils 8.30                                                     September 2019                                                                SORT(1)
+ECHO(1)                                                                 User Commands                                                                ECHO(1)
+
+NAME
+       echo - display a line of text
+
+SYNOPSIS
+       echo [SHORT-OPTION]... [STRING]...
+       echo LONG-OPTION
+
+DESCRIPTION
+       Echo the STRING(s) to standard output.
+
+       -n     do not output the trailing newline
+
+       -e     enable interpretation of backslash escapes
+
+       -E     disable interpretation of backslash escapes (default)
+
+       --help display this help and exit
+
+       --version
+              output version information and exit
+
+       If -e is in effect, the following sequences are recognized:
+
+       \\     backslash
+
+       \a     alert (BEL)
+
+       \b     backspace
+
+       \c     produce no further output
+
+       \e     escape
+
+       \f     form feed
+
+       \n     new line
+
+       \r     carriage return
+
+       \t     horizontal tab
+
+       \v     vertical tab
+
+       \0NNN  byte with octal value NNN (1 to 3 digits)
+
+       \xHH   byte with hexadecimal value HH (1 to 2 digits)
+
+       NOTE:  your  shell may have its own version of echo, which usually supersedes the version described here.  Please refer to your shell's documentation
+       for details about the options it supports.
+
+AUTHOR
+       Written by Brian Fox and Chet Ramey.
+
+REPORTING BUGS
+       GNU coreutils online help: <https://www.gnu.org/software/coreutils/>
+       Report echo translation bugs to <https://translationproject.org/team/>
+
+COPYRIGHT
+       Copyright © 2018 Free Software Foundation, Inc.  License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+       This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
+
+SEE ALSO
+       Full documentation at: <https://www.gnu.org/software/coreutils/echo>
+       or available locally via: info '(coreutils) echo invocation'
+
+GNU coreutils 8.30                                                     September 2019                                                                ECHO(1)
+SUDO(8)                                                          BSD System Manager's Manual                                                         SUDO(8)
+
+NAME
+     sudo, sudoedit — execute a command as another user
+
+SYNOPSIS
+     sudo -h | -K | -k | -V
+     sudo -v [-ABknS] [-g group] [-h host] [-p prompt] [-u user]
+     sudo -l [-ABknS] [-g group] [-h host] [-p prompt] [-U user] [-u user] [command]
+     sudo [-ABbEHnPS] [-C num] [-g group] [-h host] [-p prompt] [-r role] [-t type] [-T timeout] [-u user] [VAR=value] [-i | -s] [command]
+     sudoedit [-ABknS] [-C num] [-g group] [-h host] [-p prompt] [-T timeout] [-u user] file ...
+
+DESCRIPTION
+     sudo allows a permitted user to execute a command as the superuser or another user, as specified by the security policy.  The invoking user's real (not
+     effective) user-ID is used to determine the user name with which to query the security policy.
+
+     sudo supports a plugin architecture for security policies and input/output logging.  Third parties can develop and distribute their own policy and I/O
+     logging plugins to work seamlessly with the sudo front end.  The default security policy is sudoers, which is configured via the file /etc/sudoers, or
+     via LDAP.  See the Plugins section for more information.
+
+     The security policy determines what privileges, if any, a user has to run sudo.  The policy may require that users authenticate themselves with a pass‐
+     word or another authentication mechanism.  If authentication is required, sudo will exit if the user's password is not entered within a configurable
+     time limit.  This limit is policy-specific; the default password prompt timeout for the sudoers security policy is 0 minutes.
+
+     Security policies may support credential caching to allow the user to run sudo again for a period of time without requiring authentication.  By de‐
+     fault, the sudoers policy caches credentials on a per-terminal basis for 15 minutes.  See the timestamp_type and timestamp_timeout options in
+     sudoers(5) for more information.  By running sudo with the -v option, a user can update the cached credentials without running a command.
+
+     When invoked as sudoedit, the -e option (described below), is implied.
+
+     Security policies may log successful and failed attempts to use sudo.  If an I/O plugin is configured, the running command's input and output may be
+     logged as well.
+
+     The options are as follows:
+
+     -A, --askpass
+                 Normally, if sudo requires a password, it will read it from the user's terminal.  If the -A (askpass) option is specified, a (possibly
+                 graphical) helper program is executed to read the user's password and output the password to the standard output.  If the SUDO_ASKPASS en‐
+                 vironment variable is set, it specifies the path to the helper program.  Otherwise, if sudo.conf(5) contains a line specifying the askpass
+                 program, that value will be used.  For example:
+
+                     # Path to askpass helper program
+                     Path askpass /usr/X11R6/bin/ssh-askpass
+
+                 If no askpass program is available, sudo will exit with an error.
+
+     -B, --bell  Ring the bell as part of the password promp when a terminal is present.  This option has no effect if an askpass program is used.
+
+     -b, --background
+                 Run the given command in the background.  Note that it is not possible to use shell job control to manipulate background processes started
+                 by sudo.  Most interactive commands will fail to work properly in background mode.
+
+     -C num, --close-from=num
+                 Close all file descriptors greater than or equal to num before executing a command.  Values less than three are not permitted.  By default,
+                 sudo will close all open file descriptors other than standard input, standard output and standard error when executing a command.  The se‐
+                 curity policy may restrict the user's ability to use this option.  The sudoers policy only permits use of the -C option when the adminis‐
+                 trator has enabled the closefrom_override option.
+
+     -E, --preserve-env
+                 Indicates to the security policy that the user wishes to preserve their existing environment variables.  The security policy may return an
+                 error if the user does not have permission to preserve the environment.
+
+     --preserve-env=list
+                 Indicates to the security policy that the user wishes to add the comma-separated list of environment variables to those preserved from the
+                 user's environment.  The security policy may return an error if the user does not have permission to preserve the environment.
+
+     -e, --edit  Edit one or more files instead of running a command.  In lieu of a path name, the string "sudoedit" is used when consulting the security
+                 policy.  If the user is authorized by the policy, the following steps are taken:
+
+                 1.   Temporary copies are made of the files to be edited with the owner set to the invoking user.
+
+                 2.   The editor specified by the policy is run to edit the temporary files.  The sudoers policy uses the SUDO_EDITOR, VISUAL and EDITOR en‐
+                      vironment variables (in that order).  If none of SUDO_EDITOR, VISUAL or EDITOR are set, the first program listed in the editor
+                      sudoers(5) option is used.
+
+                 3.   If they have been modified, the temporary files are copied back to their original location and the temporary versions are removed.
+
+                 To help prevent the editing of unauthorized files, the following restrictions are enforced unless explicitly allowed by the security pol‐
+                 icy:
+
+                 •  Symbolic links may not be edited (version 1.8.15 and higher).
+
+                 •  Symbolic links along the path to be edited are not followed when the parent directory is writable by the invoking user unless that user
+                    is root (version 1.8.16 and higher).
+
+                 •  Files located in a directory that is writable by the invoking user may not be edited unless that user is root (version 1.8.16 and
+                    higher).
+
+                 Users are never allowed to edit device special files.
+
+                 If the specified file does not exist, it will be created.  Note that unlike most commands run by sudo, the editor is run with the invoking
+                 user's environment unmodified.  If, for some reason, sudo is unable to update a file with its edited version, the user will receive a warn‐
+                 ing and the edited copy will remain in a temporary file.
+
+     -g group, --group=group
+                 Run the command with the primary group set to group instead of the primary group specified by the target user's password database entry.
+                 The group may be either a group name or a numeric group-ID (GID) prefixed with the ‘#’ character (e.g., #0 for GID 0).  When running a com‐
+                 mand as a GID, many shells require that the ‘#’ be escaped with a backslash (‘\’).  If no -u option is specified, the command will be run
+                 as the invoking user.  In either case, the primary group will be set to group.  The sudoers policy permits any of the target user's groups
+                 to be specified via the -g option as long as the -P option is not in use.
+
+     -H, --set-home
+                 Request that the security policy set the HOME environment variable to the home directory specified by the target user's password database
+                 entry.  Depending on the policy, this may be the default behavior.
+
+     -h, --help  Display a short help message to the standard output and exit.
+
+     -h host, --host=host
+                 Run the command on the specified host if the security policy plugin supports remote commands.  Note that the sudoers plugin does not cur‐
+                 rently support running remote commands.  This may also be used in conjunction with the -l option to list a user's privileges for the remote
+                 host.
+
+     -i, --login
+                 Run the shell specified by the target user's password database entry as a login shell.  This means that login-specific resource files such
+                 as .profile, .bash_profile or .login will be read by the shell.  If a command is specified, it is passed to the shell for execution via the
+                 shell's -c option.  If no command is specified, an interactive shell is executed.  sudo attempts to change to that user's home directory
+                 before running the shell.  The command is run with an environment similar to the one a user would receive at log in.  Note that most shells
+                 behave differently when a command is specified as compared to an interactive session; consult the shell's manual for details.  The Command
+                 environment section in the sudoers(5) manual documents how the -i option affects the environment in which a command is run when the sudoers
+                 policy is in use.
+
+     -K, --remove-timestamp
+                 Similar to the -k option, except that it removes the user's cached credentials entirely and may not be used in conjunction with a command
+                 or other option.  This option does not require a password.  Not all security policies support credential caching.
+
+     -k, --reset-timestamp
+                 When used without a command, invalidates the user's cached credentials.  In other words, the next time sudo is run a password will be re‐
+                 quired.  This option does not require a password and was added to allow a user to revoke sudo permissions from a .logout file.
+
+                 When used in conjunction with a command or an option that may require a password, this option will cause sudo to ignore the user's cached
+                 credentials.  As a result, sudo will prompt for a password (if one is required by the security policy) and will not update the user's
+                 cached credentials.
+
+                 Not all security policies support credential caching.
+
+     -l, --list  If no command is specified, list the allowed (and forbidden) commands for the invoking user (or the user specified by the -U option) on the
+                 current host.  A longer list format is used if this option is specified multiple times and the security policy supports a verbose output
+                 format.
+
+                 If a command is specified and is permitted by the security policy, the fully-qualified path to the command is displayed along with any com‐
+                 mand line arguments.  If a command is specified but not allowed by the policy, sudo will exit with a status value of 1.
+
+     -n, --non-interactive
+                 Avoid prompting the user for input of any kind.  If a password is required for the command to run, sudo will display an error message and
+                 exit.
+
+     -P, --preserve-groups
+                 Preserve the invoking user's group vector unaltered.  By default, the sudoers policy will initialize the group vector to the list of groups
+                 the target user is a member of.  The real and effective group-IDs, however, are still set to match the target user.
+
+     -p prompt, --prompt=prompt
+                 Use a custom password prompt with optional escape sequences.  The following percent (‘%’) escape sequences are supported by the sudoers
+                 policy:
+
+                 %H  expanded to the host name including the domain name (on if the machine's host name is fully qualified or the fqdn option is set in
+                     sudoers(5))
+
+                 %h  expanded to the local host name without the domain name
+
+                 %p  expanded to the name of the user whose password is being requested (respects the rootpw, targetpw, and runaspw flags in sudoers(5))
+
+                 %U  expanded to the login name of the user the command will be run as (defaults to root unless the -u option is also specified)
+
+                 %u  expanded to the invoking user's login name
+
+                 %%  two consecutive ‘%’ characters are collapsed into a single ‘%’ character
+
+                 The custom prompt will override the default prompt specified by either the security policy or the SUDO_PROMPT environment variable.  On
+                 systems that use PAM, the custom prompt will also override the prompt specified by a PAM module unless the passprompt_override flag is dis‐
+                 abled in sudoers.
+
+     -r role, --role=role
+                 Run the command with an SELinux security context that includes the specified role.
+
+     -S, --stdin
+                 Write the prompt to the standard error and read the password from the standard input instead of using the terminal device.
+
+     -s, --shell
+                 Run the shell specified by the SHELL environment variable if it is set or the shell specified by the invoking user's password database en‐
+                 try.  If a command is specified, it is passed to the shell for execution via the shell's -c option.  If no command is specified, an inter‐
+                 active shell is executed.  Note that most shells behave differently when a command is specified as compared to an interactive session; con‐
+                 sult the shell's manual for details.
+
+     -t type, --type=type
+                 Run the command with an SELinux security context that includes the specified type.  If no type is specified, the default type is derived
+                 from the role.
+
+     -U user, --other-user=user
+                 Used in conjunction with the -l option to list the privileges for user instead of for the invoking user.  The security policy may restrict
+                 listing other users' privileges.  The sudoers policy only allows root or a user with the ALL privilege on the current host to use this op‐
+                 tion.
+
+     -T timeout, --command-timeout=timeout
+                 Used to set a timeout for the command.  If the timeout expires before the command has exited, the command will be terminated.  The security
+                 policy may restrict the ability to set command timeouts.  The sudoers policy requires that user-specified timeouts be explicitly enabled.
+
+     -u user, --user=user
+                 Run the command as a user other than the default target user (usually root).  The user may be either a user name or a numeric user-ID (UID)
+                 prefixed with the ‘#’ character (e.g., #0 for UID 0).  When running commands as a UID, many shells require that the ‘#’ be escaped with a
+                 backslash (‘\’).  Some security policies may restrict UIDs to those listed in the password database.  The sudoers policy allows UIDs that
+                 are not in the password database as long as the targetpw option is not set.  Other security policies may not support this.
+
+     -V, --version
+                 Print the sudo version string as well as the version string of the security policy plugin and any I/O plugins.  If the invoking user is al‐
+                 ready root the -V option will display the arguments passed to configure when sudo was built and plugins may display more verbose informa‐
+                 tion such as default options.
+
+     -v, --validate
+                 Update the user's cached credentials, authenticating the user if necessary.  For the sudoers plugin, this extends the sudo timeout for an‐
+                 other 15 minutes by default, but does not run a command.  Not all security policies support cached credentials.
+
+     --          The -- option indicates that sudo should stop processing command line arguments.
+
+     Environment variables to be set for the command may also be passed on the command line in the form of VAR=value, e.g.,
+     LD_LIBRARY_PATH=/usr/local/pkg/lib.  Variables passed on the command line are subject to restrictions imposed by the security policy plugin.  The
+     sudoers policy subjects variables passed on the command line to the same restrictions as normal environment variables with one important exception.  If
+     the setenv option is set in sudoers, the command to be run has the SETENV tag set or the command matched is ALL, the user may set variables that would
+     otherwise be forbidden.  See sudoers(5) for more information.
+
+COMMAND EXECUTION
+     When sudo executes a command, the security policy specifies the execution environment for the command.  Typically, the real and effective user and
+     group and IDs are set to match those of the target user, as specified in the password database, and the group vector is initialized based on the group
+     database (unless the -P option was specified).
+
+     The following parameters may be specified by security policy:
+
+     •  real and effective user-ID
+
+     •  real and effective group-ID
+
+     •  supplementary group-IDs
+
+     •  the environment list
+
+     •  current working directory
+
+     •  file creation mode mask (umask)
+
+     •  SELinux role and type
+
+     •  scheduling priority (aka nice value)
+
+   Process model
+     There are two distinct ways sudo can run a command.
+
+     If an I/O logging plugin is configured or if the security policy explicitly requests it, a new pseudo-terminal (“pty”) is allocated and fork(2) is used
+     to create a second sudo process, referred to as the monitor.  The monitor creates a new terminal session with itself as the leader and the pty as its
+     controlling terminal, calls fork(2), sets up the execution environment as described above, and then uses the execve(2) system call to run the command
+     in the child process.  The monitor exists to relay job control signals between the user's existing terminal and the pty the command is being run in.
+     This makes it possible to suspend and resume the command.  Without the monitor, the command would be in what POSIX terms an “orphaned process group”
+     and it would not receive any job control signals from the kernel.  When the command exits or is terminated by a signal, the monitor passes the com‐
+     mand's exit status to the main sudo process and exits.  After receiving the command's exit status, the main sudo passes the command's exit status to
+     the security policy's close function and exits.
+
+     If no pty is used, sudo calls fork(2), sets up the execution environment as described above, and uses the execve(2) system call to run the command in
+     the child process.  The main sudo process waits until the command has completed, then passes the command's exit status to the security policy's close
+     function and exits.  As a special case, if the policy plugin does not define a close function, sudo will execute the command directly instead of call‐
+     ing fork(2) first.  The sudoers policy plugin will only define a close function when I/O logging is enabled, a pty is required, or the pam_session or
+     pam_setcred options are enabled.  Note that pam_session and pam_setcred are enabled by default on systems using PAM.
+
+   Signal handling
+     When the command is run as a child of the sudo process, sudo will relay signals it receives to the command.  The SIGINT and SIGQUIT signals are only
+     relayed when the command is being run in a new pty or when the signal was sent by a user process, not the kernel.  This prevents the command from re‐
+     ceiving SIGINT twice each time the user enters control-C.  Some signals, such as SIGSTOP and SIGKILL, cannot be caught and thus will not be relayed to
+     the command.  As a general rule, SIGTSTP should be used instead of SIGSTOP when you wish to suspend a command being run by sudo.
+
+     As a special case, sudo will not relay signals that were sent by the command it is running.  This prevents the command from accidentally killing it‐
+     self.  On some systems, the reboot(8) command sends SIGTERM to all non-system processes other than itself before rebooting the system.  This prevents
+     sudo from relaying the SIGTERM signal it received back to reboot(8), which might then exit before the system was actually rebooted, leaving it in a
+     half-dead state similar to single user mode.  Note, however, that this check only applies to the command run by sudo and not any other processes that
+     the command may create.  As a result, running a script that calls reboot(8) or shutdown(8) via sudo may cause the system to end up in this undefined
+     state unless the reboot(8) or shutdown(8) are run using the exec() family of functions instead of system() (which interposes a shell between the com‐
+     mand and the calling process).
+
+     If no I/O logging plugins are loaded and the policy plugin has not defined a close() function, set a command timeout or required that the command be
+     run in a new pty, sudo may execute the command directly instead of running it as a child process.
+
+   Plugins
+     Plugins may be specified via Plugin directives in the sudo.conf(5) file.  They may be loaded as dynamic shared objects (on systems that support them),
+     or compiled directly into the sudo binary.  If no sudo.conf(5) file is present, or it contains no Plugin lines, sudo will use the traditional sudoers
+     security policy and I/O logging.  See the sudo.conf(5) manual for details of the /etc/sudo.conf file and the sudo_plugin(5) manual for more information
+     about the sudo plugin architecture.
+
+EXIT VALUE
+     Upon successful execution of a command, the exit status from sudo will be the exit status of the program that was executed.  If the command terminated
+     due to receipt of a signal, sudo will send itself the same signal that terminated the command.
+
+     If the -l option was specified without a command, sudo will exit with a value of 0 if the user is allowed to run sudo and they authenticated success‐
+     fully (as required by the security policy).  If a command is specified with the -l option, the exit value will only be 0 if the command is permitted by
+     the security policy, otherwise it will be 1.
+
+     If there is an authentication failure, a configuration/permission problem or if the given command cannot be executed, sudo exits with a value of 1.  In
+     the latter case, the error string is printed to the standard error.  If sudo cannot stat(2) one or more entries in the user's PATH, an error is printed
+     to the standard error.  (If the directory does not exist or if it is not really a directory, the entry is ignored and no error is printed.)  This
+     should not happen under normal circumstances.  The most common reason for stat(2) to return “permission denied” is if you are running an automounter
+     and one of the directories in your PATH is on a machine that is currently unreachable.
+
+SECURITY NOTES
+     sudo tries to be safe when executing external commands.
+
+     To prevent command spoofing, sudo checks "." and "" (both denoting current directory) last when searching for a command in the user's PATH (if one or
+     both are in the PATH).  Note, however, that the actual PATH environment variable is not modified and is passed unchanged to the program that sudo exe‐
+     cutes.
+
+     Users should never be granted sudo privileges to execute files that are writable by the user or that reside in a directory that is writable by the
+     user.  If the user can modify or replace the command there is no way to limit what additional commands they can run.
+
+     Please note that sudo will normally only log the command it explicitly runs.  If a user runs a command such as sudo su or sudo sh, subsequent commands
+     run from that shell are not subject to sudo's security policy.  The same is true for commands that offer shell escapes (including most editors).  If
+     I/O logging is enabled, subsequent commands will have their input and/or output logged, but there will not be traditional logs for those commands.  Be‐
+     cause of this, care must be taken when giving users access to commands via sudo to verify that the command does not inadvertently give the user an ef‐
+     fective root shell.  For more information, please see the Preventing shell escapes section in sudoers(5).
+
+     To prevent the disclosure of potentially sensitive information, sudo disables core dumps by default while it is executing (they are re-enabled for the
+     command that is run).  This historical practice dates from a time when most operating systems allowed set-user-ID processes to dump core by default.
+     To aid in debugging sudo crashes, you may wish to re-enable core dumps by setting “disable_coredump” to false in the sudo.conf(5) file as follows:
+
+           Set disable_coredump false
+
+     See the sudo.conf(5) manual for more information.
+
+ENVIRONMENT
+     sudo utilizes the following environment variables.  The security policy has control over the actual content of the command's environment.
+
+     EDITOR           Default editor to use in -e (sudoedit) mode if neither SUDO_EDITOR nor VISUAL is set.
+
+     MAIL             Set to the mail spool of the target user when the -i option is specified or when env_reset is enabled in sudoers (unless MAIL is
+                      present in the env_keep list).
+
+     HOME             Set to the home directory of the target user when the -i or -H options are specified, when the -s option is specified and set_home is
+                      set in sudoers, when always_set_home is enabled in sudoers, or when env_reset is enabled in sudoers and HOME is not present in the
+                      env_keep list.
+
+     LOGNAME          Set to the login name of the target user when the -i option is specified, when the set_logname option is enabled in sudoers or when
+                      the env_reset option is enabled in sudoers (unless LOGNAME is present in the env_keep list).
+
+     PATH             May be overridden by the security policy.
+
+     SHELL            Used to determine shell to run with -s option.
+
+     SUDO_ASKPASS     Specifies the path to a helper program used to read the password if no terminal is available or if the -A option is specified.
+
+     SUDO_COMMAND     Set to the command run by sudo.
+
+     SUDO_EDITOR      Default editor to use in -e (sudoedit) mode.
+
+     SUDO_GID         Set to the group-ID of the user who invoked sudo.
+
+     SUDO_PROMPT      Used as the default password prompt unless the -p option was specified.
+
+     SUDO_PS1         If set, PS1 will be set to its value for the program being run.
+
+     SUDO_UID         Set to the user-ID of the user who invoked sudo.
+
+     SUDO_USER        Set to the login name of the user who invoked sudo.
+
+     USER             Set to the same value as LOGNAME, described above.
+
+     VISUAL           Default editor to use in -e (sudoedit) mode if SUDO_EDITOR is not set.
+
+FILES
+     /etc/sudo.conf            sudo front end configuration
+
+EXAMPLES
+     Note: the following examples assume a properly configured security policy.
+
+     To get a file listing of an unreadable directory:
+
+           $ sudo ls /usr/local/protected
+
+     To list the home directory of user yaz on a machine where the file system holding ~yaz is not exported as root:
+
+           $ sudo -u yaz ls ~yaz
+
+     To edit the index.html file as user www:
+
+           $ sudoedit -u www ~www/htdocs/index.html
+
+     To view system logs only accessible to root and users in the adm group:
+
+           $ sudo -g adm more /var/log/syslog
+
+     To run an editor as jim with a different primary group:
+
+           $ sudoedit -u jim -g audio ~jim/sound.txt
+
+     To shut down a machine:
+
+           $ sudo shutdown -r +15 "quick reboot"
+
+     To make a usage listing of the directories in the /home partition.  Note that this runs the commands in a sub-shell to make the cd and file redirection
+     work.
+
+           $ sudo sh -c "cd /home ; du -s * | sort -rn > USAGE"
+
+DIAGNOSTICS
+     Error messages produced by sudo include:
+
+     editing files in a writable directory is not permitted
+           By default, sudoedit does not permit editing a file when any of the parent directories are writable by the invoking user.  This avoids a race
+           condition that could allow the user to overwrite an arbitrary file.  See the sudoedit_checkdir option in sudoers(5) for more information.
+
+     editing symbolic links is not permitted
+           By default, sudoedit does not follow symbolic links when opening files.  See the sudoedit_follow option in sudoers(5) for more information.
+
+     effective uid is not 0, is sudo installed setuid root?
+           sudo was not run with root privileges.  The sudo binary must be owned by the root user and have the set-user-ID bit set.  Also, it must not be
+           located on a file system mounted with the ‘nosuid’ option or on an NFS file system that maps uid 0 to an unprivileged uid.
+
+     effective uid is not 0, is sudo on a file system with the 'nosuid' option set or an NFS file system without root privileges?
+           sudo was not run with root privileges.  The sudo binary has the proper owner and permissions but it still did not run with root privileges.  The
+           most common reason for this is that the file system the sudo binary is located on is mounted with the ‘nosuid’ option or it is an NFS file system
+           that maps uid 0 to an unprivileged uid.
+
+     fatal error, unable to load plugins
+           An error occurred while loading or initializing the plugins specified in sudo.conf(5).
+
+     invalid environment variable name
+           One or more environment variable names specified via the -E option contained an equal sign (‘=’).  The arguments to the -E option should be envi‐
+           ronment variable names without an associated value.
+
+     no password was provided
+           When sudo tried to read the password, it did not receive any characters.  This may happen if no terminal is available (or the -S option is speci‐
+           fied) and the standard input has been redirected from /dev/null.
+
+     a terminal is required to read the password
+           sudo needs to read the password but there is no mechanism available for it to do so.  A terminal is not present to read the password from, sudo
+           has not been configured to read from the standard input, the -S option was not used, and no askpass helper has been specified either via the
+           sudo.conf(5) file or the SUDO_ASKPASS environment variable.
+
+     no writable temporary directory found
+           sudoedit was unable to find a usable temporary directory in which to store its intermediate files.
+
+     sudo must be owned by uid 0 and have the setuid bit set
+           sudo was not run with root privileges.  The sudo binary does not have the correct owner or permissions.  It must be owned by the root user and
+           have the set-user-ID bit set.
+
+     sudoedit is not supported on this platform
+           It is only possible to run sudoedit on systems that support setting the effective user-ID.
+
+     timed out reading password
+           The user did not enter a password before the password timeout (5 minutes by default) expired.
+
+     you do not exist in the passwd database
+           Your user-ID does not appear in the system passwd database.
+
+     you may not specify environment variables in edit mode
+           It is only possible to specify environment variables when running a command.  When editing a file, the editor is run with the user's environment
+           unmodified.
+
+SEE ALSO
+     su(1), stat(2), login_cap(3), passwd(5), sudo.conf(5), sudo_plugin(5), sudoers(5), sudoers_timestamp(5), sudoreplay(8), visudo(8)
+
+HISTORY
+     See the HISTORY file in the sudo distribution (https://www.sudo.ws/history.html) for a brief history of sudo.
+
+AUTHORS
+     Many people have worked on sudo over the years; this version consists of code written primarily by:
+
+           Todd C. Miller
+
+     See the CONTRIBUTORS file in the sudo distribution (https://www.sudo.ws/contributors.html) for an exhaustive list of people who have contributed to
+     sudo.
+
+CAVEATS
+     There is no easy way to prevent a user from gaining a root shell if that user is allowed to run arbitrary commands via sudo.  Also, many programs (such
+     as editors) allow the user to run commands via shell escapes, thus avoiding sudo's checks.  However, on most systems it is possible to prevent shell
+     escapes with the sudoers(5) plugin's noexec functionality.
+
+     It is not meaningful to run the cd command directly via sudo, e.g.,
+
+           $ sudo cd /usr/local/protected
+
+     since when the command exits the parent process (your shell) will still be the same.  Please see the EXAMPLES section for more information.
+
+     Running shell scripts via sudo can expose the same kernel bugs that make set-user-ID shell scripts unsafe on some operating systems (if your OS has a
+     /dev/fd/ directory, set-user-ID shell scripts are generally safe).
+
+BUGS
+     If you feel you have found a bug in sudo, please submit a bug report at https://bugzilla.sudo.ws/
+
+SUPPORT
+     Limited free support is available via the sudo-users mailing list, see https://www.sudo.ws/mailman/listinfo/sudo-users to subscribe or search the ar‐
+     chives.
+
+DISCLAIMER
+     sudo is provided “AS IS” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness
+     for a particular purpose are disclaimed.  See the LICENSE file distributed with sudo or https://www.sudo.ws/license.html for complete details.
+
+Sudo 1.8.31                                                           October 20, 2019                                                           Sudo 1.8.31
+SSH(1)                                                           BSD General Commands Manual                                                          SSH(1)
+
+NAME
+     ssh — OpenSSH remote login client
+
+SYNOPSIS
+     ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface] [-b bind_address] [-c cipher_spec] [-D [bind_address:]port] [-E log_file] [-e escape_char]
+         [-F configfile] [-I pkcs11] [-i identity_file] [-J destination] [-L address] [-l login_name] [-m mac_spec] [-O ctl_cmd] [-o option] [-p port]
+         [-Q query_option] [-R address] [-S ctl_path] [-W host:port] [-w local_tun[:remote_tun]] destination [command]
+
+DESCRIPTION
+     ssh (SSH client) is a program for logging into a remote machine and for executing commands on a remote machine.  It is intended to provide secure en‐
+     crypted communications between two untrusted hosts over an insecure network.  X11 connections, arbitrary TCP ports and UNIX-domain sockets can also be
+     forwarded over the secure channel.
+
+     ssh connects and logs into the specified destination, which may be specified as either [user@]hostname or a URI of the form
+     ssh://[user@]hostname[:port].  The user must prove his/her identity to the remote machine using one of several methods (see below).
+
+     If a command is specified, it is executed on the remote host instead of a login shell.
+
+     The options are as follows:
+
+     -4      Forces ssh to use IPv4 addresses only.
+
+     -6      Forces ssh to use IPv6 addresses only.
+
+     -A      Enables forwarding of connections from an authentication agent such as ssh-agent(1).  This can also be specified on a per-host basis in a con‐
+             figuration file.
+
+             Agent forwarding should be enabled with caution.  Users with the ability to bypass file permissions on the remote host (for the agent's
+             UNIX-domain socket) can access the local agent through the forwarded connection.  An attacker cannot obtain key material from the agent, how‐
+             ever they can perform operations on the keys that enable them to authenticate using the identities loaded into the agent.  A safer alternative
+             may be to use a jump host (see -J).
+
+     -a      Disables forwarding of the authentication agent connection.
+
+     -B bind_interface
+             Bind to the address of bind_interface before attempting to connect to the destination host.  This is only useful on systems with more than one
+             address.
+
+     -b bind_address
+             Use bind_address on the local machine as the source address of the connection.  Only useful on systems with more than one address.
+
+     -C      Requests compression of all data (including stdin, stdout, stderr, and data for forwarded X11, TCP and UNIX-domain connections).  The compres‐
+             sion algorithm is the same used by gzip(1).  Compression is desirable on modem lines and other slow connections, but will only slow down things
+             on fast networks.  The default value can be set on a host-by-host basis in the configuration files; see the Compression option.
+
+     -c cipher_spec
+             Selects the cipher specification for encrypting the session.  cipher_spec is a comma-separated list of ciphers listed in order of preference.
+             See the Ciphers keyword in ssh_config(5) for more information.
+
+     -D [bind_address:]port
+             Specifies a local “dynamic” application-level port forwarding.  This works by allocating a socket to listen to port on the local side, option‐
+             ally bound to the specified bind_address.  Whenever a connection is made to this port, the connection is forwarded over the secure channel, and
+             the application protocol is then used to determine where to connect to from the remote machine.  Currently the SOCKS4 and SOCKS5 protocols are
+             supported, and ssh will act as a SOCKS server.  Only root can forward privileged ports.  Dynamic port forwardings can also be specified in the
+             configuration file.
+
+             IPv6 addresses can be specified by enclosing the address in square brackets.  Only the superuser can forward privileged ports.  By default, the
+             local port is bound in accordance with the GatewayPorts setting.  However, an explicit bind_address may be used to bind the connection to a
+             specific address.  The bind_address of “localhost” indicates that the listening port be bound for local use only, while an empty address or ‘*’
+             indicates that the port should be available from all interfaces.
+
+     -E log_file
+             Append debug logs to log_file instead of standard error.
+
+     -e escape_char
+             Sets the escape character for sessions with a pty (default: ‘~’).  The escape character is only recognized at the beginning of a line.  The es‐
+             cape character followed by a dot (‘.’) closes the connection; followed by control-Z suspends the connection; and followed by itself sends the
+             escape character once.  Setting the character to “none” disables any escapes and makes the session fully transparent.
+
+     -F configfile
+             Specifies an alternative per-user configuration file.  If a configuration file is given on the command line, the system-wide configuration file
+             (/etc/ssh/ssh_config) will be ignored.  The default for the per-user configuration file is ~/.ssh/config.
+
+     -f      Requests ssh to go to background just before command execution.  This is useful if ssh is going to ask for passwords or passphrases, but the
+             user wants it in the background.  This implies -n.  The recommended way to start X11 programs at a remote site is with something like ssh -f
+             host xterm.
+
+             If the ExitOnForwardFailure configuration option is set to “yes”, then a client started with -f will wait for all remote port forwards to be
+             successfully established before placing itself in the background.
+
+     -G      Causes ssh to print its configuration after evaluating Host and Match blocks and exit.
+
+     -g      Allows remote hosts to connect to local forwarded ports.  If used on a multiplexed connection, then this option must be specified on the master
+             process.
+
+     -I pkcs11
+             Specify the PKCS#11 shared library ssh should use to communicate with a PKCS#11 token providing keys for user authentication.
+
+     -i identity_file
+             Selects a file from which the identity (private key) for public key authentication is read.  The default is ~/.ssh/id_dsa, ~/.ssh/id_ecdsa,
+             ~/.ssh/id_ecdsa_sk, ~/.ssh/id_ed25519, ~/.ssh/id_ed25519_sk and ~/.ssh/id_rsa.  Identity files may also be specified on a per-host basis in the
+             configuration file.  It is possible to have multiple -i options (and multiple identities specified in configuration files).  If no certificates
+             have been explicitly specified by the CertificateFile directive, ssh will also try to load certificate information from the filename obtained
+             by appending -cert.pub to identity filenames.
+
+     -J destination
+             Connect to the target host by first making a ssh connection to the jump host described by destination and then establishing a TCP forwarding to
+             the ultimate destination from there.  Multiple jump hops may be specified separated by comma characters.  This is a shortcut to specify a
+             ProxyJump configuration directive.  Note that configuration directives supplied on the command-line generally apply to the destination host and
+             not any specified jump hosts.  Use ~/.ssh/config to specify configuration for jump hosts.
+
+     -K      Enables GSSAPI-based authentication and forwarding (delegation) of GSSAPI credentials to the server.
+
+     -k      Disables forwarding (delegation) of GSSAPI credentials to the server.
+
+     -L [bind_address:]port:host:hostport
+     -L [bind_address:]port:remote_socket
+     -L local_socket:host:hostport
+     -L local_socket:remote_socket
+             Specifies that connections to the given TCP port or Unix socket on the local (client) host are to be forwarded to the given host and port, or
+             Unix socket, on the remote side.  This works by allocating a socket to listen to either a TCP port on the local side, optionally bound to the
+             specified bind_address, or to a Unix socket.  Whenever a connection is made to the local port or socket, the connection is forwarded over the
+             secure channel, and a connection is made to either host port hostport, or the Unix socket remote_socket, from the remote machine.
+
+             Port forwardings can also be specified in the configuration file.  Only the superuser can forward privileged ports.  IPv6 addresses can be
+             specified by enclosing the address in square brackets.
+
+             By default, the local port is bound in accordance with the GatewayPorts setting.  However, an explicit bind_address may be used to bind the
+             connection to a specific address.  The bind_address of “localhost” indicates that the listening port be bound for local use only, while an
+             empty address or ‘*’ indicates that the port should be available from all interfaces.
+
+     -l login_name
+             Specifies the user to log in as on the remote machine.  This also may be specified on a per-host basis in the configuration file.
+
+     -M      Places the ssh client into “master” mode for connection sharing.  Multiple -M options places ssh into “master” mode but with confirmation re‐
+             quired using ssh-askpass(1) before each operation that changes the multiplexing state (e.g. opening a new session).  Refer to the description
+             of ControlMaster in ssh_config(5) for details.
+
+     -m mac_spec
+             A comma-separated list of MAC (message authentication code) algorithms, specified in order of preference.  See the MACs keyword for more infor‐
+             mation.
+
+     -N      Do not execute a remote command.  This is useful for just forwarding ports.
+
+     -n      Redirects stdin from /dev/null (actually, prevents reading from stdin).  This must be used when ssh is run in the background.  A common trick
+             is to use this to run X11 programs on a remote machine.  For example, ssh -n shadows.cs.hut.fi emacs & will start an emacs on shad‐
+             ows.cs.hut.fi, and the X11 connection will be automatically forwarded over an encrypted channel.  The ssh program will be put in the back‐
+             ground.  (This does not work if ssh needs to ask for a password or passphrase; see also the -f option.)
+
+     -O ctl_cmd
+             Control an active connection multiplexing master process.  When the -O option is specified, the ctl_cmd argument is interpreted and passed to
+             the master process.  Valid commands are: “check” (check that the master process is running), “forward” (request forwardings without command ex‐
+             ecution), “cancel” (cancel forwardings), “exit” (request the master to exit), and “stop” (request the master to stop accepting further multi‐
+             plexing requests).
+
+     -o option
+             Can be used to give options in the format used in the configuration file.  This is useful for specifying options for which there is no separate
+             command-line flag.  For full details of the options listed below, and their possible values, see ssh_config(5).
+
+                   AddKeysToAgent
+                   AddressFamily
+                   BatchMode
+                   BindAddress
+                   CanonicalDomains
+                   CanonicalizeFallbackLocal
+                   CanonicalizeHostname
+                   CanonicalizeMaxDots
+                   CanonicalizePermittedCNAMEs
+                   CASignatureAlgorithms
+                   CertificateFile
+                   ChallengeResponseAuthentication
+                   CheckHostIP
+                   Ciphers
+                   ClearAllForwardings
+                   Compression
+                   ConnectionAttempts
+                   ConnectTimeout
+                   ControlMaster
+                   ControlPath
+                   ControlPersist
+                   DynamicForward
+                   EscapeChar
+                   ExitOnForwardFailure
+                   FingerprintHash
+                   ForwardAgent
+                   ForwardX11
+                   ForwardX11Timeout
+                   ForwardX11Trusted
+                   GatewayPorts
+                   GlobalKnownHostsFile
+                   GSSAPIAuthentication
+                   GSSAPIKeyExchange
+                   GSSAPIClientIdentity
+                   GSSAPIDelegateCredentials
+                   GSSAPIKexAlgorithms
+                   GSSAPIRenewalForcesRekey
+                   GSSAPIServerIdentity
+                   GSSAPITrustDns
+                   HashKnownHosts
+                   Host
+                   HostbasedAuthentication
+                   HostbasedKeyTypes
+                   HostKeyAlgorithms
+                   HostKeyAlias
+                   Hostname
+                   IdentitiesOnly
+                   IdentityAgent
+                   IdentityFile
+                   IPQoS
+                   KbdInteractiveAuthentication
+                   KbdInteractiveDevices
+                   KexAlgorithms
+                   LocalCommand
+                   LocalForward
+                   LogLevel
+                   MACs
+                   Match
+                   NoHostAuthenticationForLocalhost
+                   NumberOfPasswordPrompts
+                   PasswordAuthentication
+                   PermitLocalCommand
+                   PKCS11Provider
+                   Port
+                   PreferredAuthentications
+                   ProxyCommand
+                   ProxyJump
+                   ProxyUseFdpass
+                   PubkeyAcceptedKeyTypes
+                   PubkeyAuthentication
+                   RekeyLimit
+                   RemoteCommand
+                   RemoteForward
+                   RequestTTY
+                   SendEnv
+                   ServerAliveInterval
+                   ServerAliveCountMax
+                   SetEnv
+                   StreamLocalBindMask
+                   StreamLocalBindUnlink
+                   StrictHostKeyChecking
+                   TCPKeepAlive
+                   Tunnel
+                   TunnelDevice
+                   UpdateHostKeys
+                   User
+                   UserKnownHostsFile
+                   VerifyHostKeyDNS
+                   VisualHostKey
+                   XAuthLocation
+
+     -p port
+             Port to connect to on the remote host.  This can be specified on a per-host basis in the configuration file.
+
+     -Q query_option
+             Queries ssh for the algorithms supported for the specified version 2.  The available features are: cipher (supported symmetric ciphers),
+             cipher-auth (supported symmetric ciphers that support authenticated encryption), help (supported query terms for use with the -Q flag), mac
+             (supported message integrity codes), kex (key exchange algorithms), kex-gss (GSSAPI key exchange algorithms), key (key types), key-cert (cer‐
+             tificate key types), key-plain (non-certificate key types), key-sig (all key types and signature algorithms), protocol-version (supported SSH
+             protocol versions), and sig (supported signature algorithms).  Alternatively, any keyword from ssh_config(5) or sshd_config(5) that takes an
+             algorithm list may be used as an alias for the corresponding query_option.
+
+     -q      Quiet mode.  Causes most warning and diagnostic messages to be suppressed.
+
+     -R [bind_address:]port:host:hostport
+     -R [bind_address:]port:local_socket
+     -R remote_socket:host:hostport
+     -R remote_socket:local_socket
+     -R [bind_address:]port
+             Specifies that connections to the given TCP port or Unix socket on the remote (server) host are to be forwarded to the local side.
+
+             This works by allocating a socket to listen to either a TCP port or to a Unix socket on the remote side.  Whenever a connection is made to this
+             port or Unix socket, the connection is forwarded over the secure channel, and a connection is made from the local machine to either an explicit
+             destination specified by host port hostport, or local_socket, or, if no explicit destination was specified, ssh will act as a SOCKS 4/5 proxy
+             and forward connections to the destinations requested by the remote SOCKS client.
+
+             Port forwardings can also be specified in the configuration file.  Privileged ports can be forwarded only when logging in as root on the remote
+             machine.  IPv6 addresses can be specified by enclosing the address in square brackets.
+
+             By default, TCP listening sockets on the server will be bound to the loopback interface only.  This may be overridden by specifying a
+             bind_address.  An empty bind_address, or the address ‘*’, indicates that the remote socket should listen on all interfaces.  Specifying a re‐
+             mote bind_address will only succeed if the server's GatewayPorts option is enabled (see sshd_config(5)).
+
+             If the port argument is ‘0’, the listen port will be dynamically allocated on the server and reported to the client at run time.  When used to‐
+             gether with -O forward the allocated port will be printed to the standard output.
+
+     -S ctl_path
+             Specifies the location of a control socket for connection sharing, or the string “none” to disable connection sharing.  Refer to the descrip‐
+             tion of ControlPath and ControlMaster in ssh_config(5) for details.
+
+     -s      May be used to request invocation of a subsystem on the remote system.  Subsystems facilitate the use of SSH as a secure transport for other
+             applications (e.g. sftp(1)).  The subsystem is specified as the remote command.
+
+     -T      Disable pseudo-terminal allocation.
+
+     -t      Force pseudo-terminal allocation.  This can be used to execute arbitrary screen-based programs on a remote machine, which can be very useful,
+             e.g. when implementing menu services.  Multiple -t options force tty allocation, even if ssh has no local tty.
+
+     -V      Display the version number and exit.
+
+     -v      Verbose mode.  Causes ssh to print debugging messages about its progress.  This is helpful in debugging connection, authentication, and config‐
+             uration problems.  Multiple -v options increase the verbosity.  The maximum is 3.
+
+     -W host:port
+             Requests that standard input and output on the client be forwarded to host on port over the secure channel.  Implies -N, -T,
+             ExitOnForwardFailure and ClearAllForwardings, though these can be overridden in the configuration file or using -o command line options.
+
+     -w local_tun[:remote_tun]
+             Requests tunnel device forwarding with the specified tun(4) devices between the client (local_tun) and the server (remote_tun).
+
+             The devices may be specified by numerical ID or the keyword “any”, which uses the next available tunnel device.  If remote_tun is not speci‐
+             fied, it defaults to “any”.  See also the Tunnel and TunnelDevice directives in ssh_config(5).
+
+             If the Tunnel directive is unset, it will be set to the default tunnel mode, which is “point-to-point”.  If a different Tunnel forwarding mode
+             it desired, then it should be specified before -w.
+
+     -X      Enables X11 forwarding.  This can also be specified on a per-host basis in a configuration file.
+
+             X11 forwarding should be enabled with caution.  Users with the ability to bypass file permissions on the remote host (for the user's X autho‐
+             rization database) can access the local X11 display through the forwarded connection.  An attacker may then be able to perform activities such
+             as keystroke monitoring.
+
+             For this reason, X11 forwarding is subjected to X11 SECURITY extension restrictions by default.  Please refer to the ssh -Y option and the
+             ForwardX11Trusted directive in ssh_config(5) for more information.
+
+             (Debian-specific: X11 forwarding is not subjected to X11 SECURITY extension restrictions by default, because too many programs currently crash
+             in this mode.  Set the ForwardX11Trusted option to “no” to restore the upstream behaviour.  This may change in future depending on client-side
+             improvements.)
+
+     -x      Disables X11 forwarding.
+
+     -Y      Enables trusted X11 forwarding.  Trusted X11 forwardings are not subjected to the X11 SECURITY extension controls.
+
+             (Debian-specific: In the default configuration, this option is equivalent to -X, since ForwardX11Trusted defaults to “yes” as described above.
+             Set the ForwardX11Trusted option to “no” to restore the upstream behaviour.  This may change in future depending on client-side improvements.)
+
+     -y      Send log information using the syslog(3) system module.  By default this information is sent to stderr.
+
+     ssh may additionally obtain configuration data from a per-user configuration file and a system-wide configuration file.  The file format and configura‐
+     tion options are described in ssh_config(5).
+
+AUTHENTICATION
+     The OpenSSH SSH client supports SSH protocol 2.
+
+     The methods available for authentication are: GSSAPI-based authentication, host-based authentication, public key authentication, challenge-response au‐
+     thentication, and password authentication.  Authentication methods are tried in the order specified above, though PreferredAuthentications can be used
+     to change the default order.
+
+     Host-based authentication works as follows: If the machine the user logs in from is listed in /etc/hosts.equiv or /etc/ssh/shosts.equiv on the remote
+     machine, and the user names are the same on both sides, or if the files ~/.rhosts or ~/.shosts exist in the user's home directory on the remote machine
+     and contain a line containing the name of the client machine and the name of the user on that machine, the user is considered for login.  Additionally,
+     the server must be able to verify the client's host key (see the description of /etc/ssh/ssh_known_hosts and ~/.ssh/known_hosts, below) for login to be
+     permitted.  This authentication method closes security holes due to IP spoofing, DNS spoofing, and routing spoofing.  [Note to the administrator:
+     /etc/hosts.equiv, ~/.rhosts, and the rlogin/rsh protocol in general, are inherently insecure and should be disabled if security is desired.]
+
+     Public key authentication works as follows: The scheme is based on public-key cryptography, using cryptosystems where encryption and decryption are
+     done using separate keys, and it is unfeasible to derive the decryption key from the encryption key.  The idea is that each user creates a public/pri‐
+     vate key pair for authentication purposes.  The server knows the public key, and only the user knows the private key.  ssh implements public key au‐
+     thentication protocol automatically, using one of the DSA, ECDSA, Ed25519 or RSA algorithms.  The HISTORY section of ssl(8) (on non-OpenBSD systems,
+     see http://www.openbsd.org/cgi-bin/man.cgi?query=ssl&sektion=8#HISTORY) contains a brief discussion of the DSA and RSA algorithms.
+
+     The file ~/.ssh/authorized_keys lists the public keys that are permitted for logging in.  When the user logs in, the ssh program tells the server which
+     key pair it would like to use for authentication.  The client proves that it has access to the private key and the server checks that the corresponding
+     public key is authorized to accept the account.
+
+     The server may inform the client of errors that prevented public key authentication from succeeding after authentication completes using a different
+     method.  These may be viewed by increasing the LogLevel to DEBUG or higher (e.g. by using the -v flag).
+
+     The user creates his/her key pair by running ssh-keygen(1).  This stores the private key in ~/.ssh/id_dsa (DSA), ~/.ssh/id_ecdsa (ECDSA),
+     ~/.ssh/id_ecdsa_sk (authenticator-hosted ECDSA), ~/.ssh/id_ed25519 (Ed25519), ~/.ssh/id_ed25519_sk (authenticator-hosted Ed25519), or ~/.ssh/id_rsa
+     (RSA) and stores the public key in ~/.ssh/id_dsa.pub (DSA), ~/.ssh/id_ecdsa.pub (ECDSA), ~/.ssh/id_ecdsa_sk.pub (authenticator-hosted ECDSA),
+     ~/.ssh/id_ed25519.pub (Ed25519), ~/.ssh/id_ed25519_sk.pub (authenticator-hosted Ed25519), or ~/.ssh/id_rsa.pub (RSA) in the user's home directory.  The
+     user should then copy the public key to ~/.ssh/authorized_keys in his/her home directory on the remote machine.  The authorized_keys file corresponds
+     to the conventional ~/.rhosts file, and has one key per line, though the lines can be very long.  After this, the user can log in without giving the
+     password.
+
+     A variation on public key authentication is available in the form of certificate authentication: instead of a set of public/private keys, signed cer‐
+     tificates are used.  This has the advantage that a single trusted certification authority can be used in place of many public/private keys.  See the
+     CERTIFICATES section of ssh-keygen(1) for more information.
+
+     The most convenient way to use public key or certificate authentication may be with an authentication agent.  See ssh-agent(1) and (optionally) the
+     AddKeysToAgent directive in ssh_config(5) for more information.
+
+     Challenge-response authentication works as follows: The server sends an arbitrary "challenge" text, and prompts for a response.  Examples of challenge-
+     response authentication include BSD Authentication (see login.conf(5)) and PAM (some non-OpenBSD systems).
+
+     Finally, if other authentication methods fail, ssh prompts the user for a password.  The password is sent to the remote host for checking; however,
+     since all communications are encrypted, the password cannot be seen by someone listening on the network.
+
+     ssh automatically maintains and checks a database containing identification for all hosts it has ever been used with.  Host keys are stored in
+     ~/.ssh/known_hosts in the user's home directory.  Additionally, the file /etc/ssh/ssh_known_hosts is automatically checked for known hosts.  Any new
+     hosts are automatically added to the user's file.  If a host's identification ever changes, ssh warns about this and disables password authentication
+     to prevent server spoofing or man-in-the-middle attacks, which could otherwise be used to circumvent the encryption.  The StrictHostKeyChecking option
+     can be used to control logins to machines whose host key is not known or has changed.
+
+     When the user's identity has been accepted by the server, the server either executes the given command in a non-interactive session or, if no command
+     has been specified, logs into the machine and gives the user a normal shell as an interactive session.  All communication with the remote command or
+     shell will be automatically encrypted.
+
+     If an interactive session is requested ssh by default will only request a pseudo-terminal (pty) for interactive sessions when the client has one.  The
+     flags -T and -t can be used to override this behaviour.
+
+     If a pseudo-terminal has been allocated the user may use the escape characters noted below.
+
+     If no pseudo-terminal has been allocated, the session is transparent and can be used to reliably transfer binary data.  On most systems, setting the
+     escape character to “none” will also make the session transparent even if a tty is used.
+
+     The session terminates when the command or shell on the remote machine exits and all X11 and TCP connections have been closed.
+
+ESCAPE CHARACTERS
+     When a pseudo-terminal has been requested, ssh supports a number of functions through the use of an escape character.
+
+     A single tilde character can be sent as ~~ or by following the tilde by a character other than those described below.  The escape character must always
+     follow a newline to be interpreted as special.  The escape character can be changed in configuration files using the EscapeChar configuration directive
+     or on the command line by the -e option.
+
+     The supported escapes (assuming the default ‘~’) are:
+
+     ~.      Disconnect.
+
+     ~^Z     Background ssh.
+
+     ~#      List forwarded connections.
+
+     ~&      Background ssh at logout when waiting for forwarded connection / X11 sessions to terminate.
+
+     ~?      Display a list of escape characters.
+
+     ~B      Send a BREAK to the remote system (only useful if the peer supports it).
+
+     ~C      Open command line.  Currently this allows the addition of port forwardings using the -L, -R and -D options (see above).  It also allows the
+             cancellation of existing port-forwardings with -KL[bind_address:]port for local, -KR[bind_address:]port for remote and -KD[bind_address:]port
+             for dynamic port-forwardings.  !command allows the user to execute a local command if the PermitLocalCommand option is enabled in
+             ssh_config(5).  Basic help is available, using the -h option.
+
+     ~R      Request rekeying of the connection (only useful if the peer supports it).
+
+     ~V      Decrease the verbosity (LogLevel) when errors are being written to stderr.
+
+     ~v      Increase the verbosity (LogLevel) when errors are being written to stderr.
+
+TCP FORWARDING
+     Forwarding of arbitrary TCP connections over a secure channel can be specified either on the command line or in a configuration file.  One possible ap‐
+     plication of TCP forwarding is a secure connection to a mail server; another is going through firewalls.
+
+     In the example below, we look at encrypting communication for an IRC client, even though the IRC server it connects to does not directly support en‐
+     crypted communication.  This works as follows: the user connects to the remote host using ssh, specifying the ports to be used to forward the connec‐
+     tion.  After that it is possible to start the program locally, and ssh will encrypt and forward the connection to the remote server.
+
+     The following example tunnels an IRC session from the client to an IRC server at “server.example.com”, joining channel “#users”, nickname “pinky”, us‐
+     ing the standard IRC port, 6667:
+
+         $ ssh -f -L 6667:localhost:6667 server.example.com sleep 10
+         $ irc -c '#users' pinky IRC/127.0.0.1
+
+     The -f option backgrounds ssh and the remote command “sleep 10” is specified to allow an amount of time (10 seconds, in the example) to start the pro‐
+     gram which is going to use the tunnel.  If no connections are made within the time specified, ssh will exit.
+
+X11 FORWARDING
+     If the ForwardX11 variable is set to “yes” (or see the description of the -X, -x, and -Y options above) and the user is using X11 (the DISPLAY environ‐
+     ment variable is set), the connection to the X11 display is automatically forwarded to the remote side in such a way that any X11 programs started from
+     the shell (or command) will go through the encrypted channel, and the connection to the real X server will be made from the local machine.  The user
+     should not manually set DISPLAY.  Forwarding of X11 connections can be configured on the command line or in configuration files.
+
+     The DISPLAY value set by ssh will point to the server machine, but with a display number greater than zero.  This is normal, and happens because ssh
+     creates a “proxy” X server on the server machine for forwarding the connections over the encrypted channel.
+
+     ssh will also automatically set up Xauthority data on the server machine.  For this purpose, it will generate a random authorization cookie, store it
+     in Xauthority on the server, and verify that any forwarded connections carry this cookie and replace it by the real cookie when the connection is
+     opened.  The real authentication cookie is never sent to the server machine (and no cookies are sent in the plain).
+
+     If the ForwardAgent variable is set to “yes” (or see the description of the -A and -a options above) and the user is using an authentication agent, the
+     connection to the agent is automatically forwarded to the remote side.
+
+VERIFYING HOST KEYS
+     When connecting to a server for the first time, a fingerprint of the server's public key is presented to the user (unless the option
+     StrictHostKeyChecking has been disabled).  Fingerprints can be determined using ssh-keygen(1):
+
+           $ ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key
+
+     If the fingerprint is already known, it can be matched and the key can be accepted or rejected.  If only legacy (MD5) fingerprints for the server are
+     available, the ssh-keygen(1) -E option may be used to downgrade the fingerprint algorithm to match.
+
+     Because of the difficulty of comparing host keys just by looking at fingerprint strings, there is also support to compare host keys visually, using
+     random art.  By setting the VisualHostKey option to “yes”, a small ASCII graphic gets displayed on every login to a server, no matter if the session
+     itself is interactive or not.  By learning the pattern a known server produces, a user can easily find out that the host key has changed when a com‐
+     pletely different pattern is displayed.  Because these patterns are not unambiguous however, a pattern that looks similar to the pattern remembered
+     only gives a good probability that the host key is the same, not guaranteed proof.
+
+     To get a listing of the fingerprints along with their random art for all known hosts, the following command line can be used:
+
+           $ ssh-keygen -lv -f ~/.ssh/known_hosts
+
+     If the fingerprint is unknown, an alternative method of verification is available: SSH fingerprints verified by DNS.  An additional resource record
+     (RR), SSHFP, is added to a zonefile and the connecting client is able to match the fingerprint with that of the key presented.
+
+     In this example, we are connecting a client to a server, “host.example.com”.  The SSHFP resource records should first be added to the zonefile for
+     host.example.com:
+
+           $ ssh-keygen -r host.example.com.
+
+     The output lines will have to be added to the zonefile.  To check that the zone is answering fingerprint queries:
+
+           $ dig -t SSHFP host.example.com
+
+     Finally the client connects:
+
+           $ ssh -o "VerifyHostKeyDNS ask" host.example.com
+           [...]
+           Matching host key fingerprint found in DNS.
+           Are you sure you want to continue connecting (yes/no)?
+
+     See the VerifyHostKeyDNS option in ssh_config(5) for more information.
+
+SSH-BASED VIRTUAL PRIVATE NETWORKS
+     ssh contains support for Virtual Private Network (VPN) tunnelling using the tun(4) network pseudo-device, allowing two networks to be joined securely.
+     The sshd_config(5) configuration option PermitTunnel controls whether the server supports this, and at what level (layer 2 or 3 traffic).
+
+     The following example would connect client network 10.0.50.0/24 with remote network 10.0.99.0/24 using a point-to-point connection from 10.1.1.1 to
+     10.1.1.2, provided that the SSH server running on the gateway to the remote network, at 192.168.1.15, allows it.
+
+     On the client:
+
+           # ssh -f -w 0:1 192.168.1.15 true
+           # ifconfig tun0 10.1.1.1 10.1.1.2 netmask 255.255.255.252
+           # route add 10.0.99.0/24 10.1.1.2
+
+     On the server:
+
+           # ifconfig tun1 10.1.1.2 10.1.1.1 netmask 255.255.255.252
+           # route add 10.0.50.0/24 10.1.1.1
+
+     Client access may be more finely tuned via the /root/.ssh/authorized_keys file (see below) and the PermitRootLogin server option.  The following entry
+     would permit connections on tun(4) device 1 from user “jane” and on tun device 2 from user “john”, if PermitRootLogin is set to “forced-commands-only”:
+
+       tunnel="1",command="sh /etc/netstart tun1" ssh-rsa ... jane
+       tunnel="2",command="sh /etc/netstart tun2" ssh-rsa ... john
+
+     Since an SSH-based setup entails a fair amount of overhead, it may be more suited to temporary setups, such as for wireless VPNs.  More permanent VPNs
+     are better provided by tools such as ipsecctl(8) and isakmpd(8).
+
+ENVIRONMENT
+     ssh will normally set the following environment variables:
+
+     DISPLAY               The DISPLAY variable indicates the location of the X11 server.  It is automatically set by ssh to point to a value of the form
+                           “hostname:n”, where “hostname” indicates the host where the shell runs, and ‘n’ is an integer ≥ 1.  ssh uses this special value
+                           to forward X11 connections over the secure channel.  The user should normally not set DISPLAY explicitly, as that will render the
+                           X11 connection insecure (and will require the user to manually copy any required authorization cookies).
+
+     HOME                  Set to the path of the user's home directory.
+
+     LOGNAME               Synonym for USER; set for compatibility with systems that use this variable.
+
+     MAIL                  Set to the path of the user's mailbox.
+
+     PATH                  Set to the default PATH, as specified when compiling ssh.
+
+     SSH_ASKPASS           If ssh needs a passphrase, it will read the passphrase from the current terminal if it was run from a terminal.  If ssh does not
+                           have a terminal associated with it but DISPLAY and SSH_ASKPASS are set, it will execute the program specified by SSH_ASKPASS and
+                           open an X11 window to read the passphrase.  This is particularly useful when calling ssh from a .xsession or related script.
+                           (Note that on some machines it may be necessary to redirect the input from /dev/null to make this work.)
+
+     SSH_AUTH_SOCK         Identifies the path of a UNIX-domain socket used to communicate with the agent.
+
+     SSH_CONNECTION        Identifies the client and server ends of the connection.  The variable contains four space-separated values: client IP address,
+                           client port number, server IP address, and server port number.
+
+     SSH_ORIGINAL_COMMAND  This variable contains the original command line if a forced command is executed.  It can be used to extract the original argu‐
+                           ments.
+
+     SSH_TTY               This is set to the name of the tty (path to the device) associated with the current shell or command.  If the current session has
+                           no tty, this variable is not set.
+
+     SSH_TUNNEL            Optionally set by sshd(8) to contain the interface names assigned if tunnel forwarding was requested by the client.
+
+     SSH_USER_AUTH         Optionally set by sshd(8), this variable may contain a pathname to a file that lists the authentication methods successfully used
+                           when the session was established, including any public keys that were used.
+
+     TZ                    This variable is set to indicate the present time zone if it was set when the daemon was started (i.e. the daemon passes the
+                           value on to new connections).
+
+     USER                  Set to the name of the user logging in.
+
+     Additionally, ssh reads ~/.ssh/environment, and adds lines of the format “VARNAME=value” to the environment if the file exists and users are allowed to
+     change their environment.  For more information, see the PermitUserEnvironment option in sshd_config(5).
+
+FILES
+     ~/.rhosts
+             This file is used for host-based authentication (see above).  On some machines this file may need to be world-readable if the user's home di‐
+             rectory is on an NFS partition, because sshd(8) reads it as root.  Additionally, this file must be owned by the user, and must not have write
+             permissions for anyone else.  The recommended permission for most machines is read/write for the user, and not accessible by others.
+
+     ~/.shosts
+             This file is used in exactly the same way as .rhosts, but allows host-based authentication without permitting login with rlogin/rsh.
+
+     ~/.ssh/
+             This directory is the default location for all user-specific configuration and authentication information.  There is no general requirement to
+             keep the entire contents of this directory secret, but the recommended permissions are read/write/execute for the user, and not accessible by
+             others.
+
+     ~/.ssh/authorized_keys
+             Lists the public keys (DSA, ECDSA, Ed25519, RSA) that can be used for logging in as this user.  The format of this file is described in the
+             sshd(8) manual page.  This file is not highly sensitive, but the recommended permissions are read/write for the user, and not accessible by
+             others.
+
+     ~/.ssh/config
+             This is the per-user configuration file.  The file format and configuration options are described in ssh_config(5).  Because of the potential
+             for abuse, this file must have strict permissions: read/write for the user, and not writable by others.  It may be group-writable provided that
+             the group in question contains only the user.
+
+     ~/.ssh/environment
+             Contains additional definitions for environment variables; see ENVIRONMENT, above.
+
+     ~/.ssh/id_dsa
+     ~/.ssh/id_ecdsa
+     ~/.ssh/id_ecdsa_sk
+     ~/.ssh/id_ed25519
+     ~/.ssh/id_ed25519_sk
+     ~/.ssh/id_rsa
+             Contains the private key for authentication.  These files contain sensitive data and should be readable by the user but not accessible by oth‐
+             ers (read/write/execute).  ssh will simply ignore a private key file if it is accessible by others.  It is possible to specify a passphrase
+             when generating the key which will be used to encrypt the sensitive part of this file using AES-128.
+
+     ~/.ssh/id_dsa.pub
+     ~/.ssh/id_ecdsa.pub
+     ~/.ssh/id_ecdsa_sk.pub
+     ~/.ssh/id_ed25519.pub
+     ~/.ssh/id_ed25519_sk.pub
+     ~/.ssh/id_rsa.pub
+             Contains the public key for authentication.  These files are not sensitive and can (but need not) be readable by anyone.
+
+     ~/.ssh/known_hosts
+             Contains a list of host keys for all hosts the user has logged into that are not already in the systemwide list of known host keys.  See
+             sshd(8) for further details of the format of this file.
+
+     ~/.ssh/rc
+             Commands in this file are executed by ssh when the user logs in, just before the user's shell (or command) is started.  See the sshd(8) manual
+             page for more information.
+
+     /etc/hosts.equiv
+             This file is for host-based authentication (see above).  It should only be writable by root.
+
+     /etc/ssh/shosts.equiv
+             This file is used in exactly the same way as hosts.equiv, but allows host-based authentication without permitting login with rlogin/rsh.
+
+     /etc/ssh/ssh_config
+             Systemwide configuration file.  The file format and configuration options are described in ssh_config(5).
+
+     /etc/ssh/ssh_host_key
+     /etc/ssh/ssh_host_dsa_key
+     /etc/ssh/ssh_host_ecdsa_key
+     /etc/ssh/ssh_host_ed25519_key
+     /etc/ssh/ssh_host_rsa_key
+             These files contain the private parts of the host keys and are used for host-based authentication.
+
+     /etc/ssh/ssh_known_hosts
+             Systemwide list of known host keys.  This file should be prepared by the system administrator to contain the public host keys of all machines
+             in the organization.  It should be world-readable.  See sshd(8) for further details of the format of this file.
+
+     /etc/ssh/sshrc
+             Commands in this file are executed by ssh when the user logs in, just before the user's shell (or command) is started.  See the sshd(8) manual
+             page for more information.
+
+EXIT STATUS
+     ssh exits with the exit status of the remote command or with 255 if an error occurred.
+
+SEE ALSO
+     scp(1), sftp(1), ssh-add(1), ssh-agent(1), ssh-argv0(1), ssh-keygen(1), ssh-keyscan(1), tun(4), ssh_config(5), ssh-keysign(8), sshd(8)
+
+STANDARDS
+     S. Lehtinen and C. Lonvick, The Secure Shell (SSH) Protocol Assigned Numbers, RFC 4250, January 2006.
+
+     T. Ylonen and C. Lonvick, The Secure Shell (SSH) Protocol Architecture, RFC 4251, January 2006.
+
+     T. Ylonen and C. Lonvick, The Secure Shell (SSH) Authentication Protocol, RFC 4252, January 2006.
+
+     T. Ylonen and C. Lonvick, The Secure Shell (SSH) Transport Layer Protocol, RFC 4253, January 2006.
+
+     T. Ylonen and C. Lonvick, The Secure Shell (SSH) Connection Protocol, RFC 4254, January 2006.
+
+     J. Schlyter and W. Griffin, Using DNS to Securely Publish Secure Shell (SSH) Key Fingerprints, RFC 4255, January 2006.
+
+     F. Cusack and M. Forssen, Generic Message Exchange Authentication for the Secure Shell Protocol (SSH), RFC 4256, January 2006.
+
+     J. Galbraith and P. Remaker, The Secure Shell (SSH) Session Channel Break Extension, RFC 4335, January 2006.
+
+     M. Bellare, T. Kohno, and C. Namprempre, The Secure Shell (SSH) Transport Layer Encryption Modes, RFC 4344, January 2006.
+
+     B. Harris, Improved Arcfour Modes for the Secure Shell (SSH) Transport Layer Protocol, RFC 4345, January 2006.
+
+     M. Friedl, N. Provos, and W. Simpson, Diffie-Hellman Group Exchange for the Secure Shell (SSH) Transport Layer Protocol, RFC 4419, March 2006.
+
+     J. Galbraith and R. Thayer, The Secure Shell (SSH) Public Key File Format, RFC 4716, November 2006.
+
+     D. Stebila and J. Green, Elliptic Curve Algorithm Integration in the Secure Shell Transport Layer, RFC 5656, December 2009.
+
+     A. Perrig and D. Song, Hash Visualization: a New Technique to improve Real-World Security, 1999, International Workshop on Cryptographic Techniques and
+     E-Commerce (CrypTEC '99).
+
+AUTHORS
+     OpenSSH is a derivative of the original and free ssh 1.2.12 release by Tatu Ylonen.  Aaron Campbell, Bob Beck, Markus Friedl, Niels Provos, Theo de
+     Raadt and Dug Song removed many bugs, re-added newer features and created OpenSSH.  Markus Friedl contributed the support for SSH protocol versions 1.5
+     and 2.0.
+
+BSD                                                                   February 7, 2020                                                                   BSD
