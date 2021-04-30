@@ -1,0 +1,40 @@
+# compartmentalize. 
+
+    #!/bin/sh
+        exit=0 # this is to send an exit after. 
+        # Name of address book
+        BOOK="address-book.txt"
+
+        while [ $exit -ne 1 ]
+        do
+            echo "What operation do you want?"
+            echo "available commands, add, find, del, and exit."
+            read -p "type in a command > " answer 
+
+            if [ "$answer" = "add" ]
+            then
+                ./addition.sh
+                sort -o temp.txt address-book.txt 
+                cp temp.txt address-book.txt
+            elif [ "$answer" = "list" ]
+            then
+                ./list.sh
+                sort -o temp.txt address-book.txt 
+                cp temp.txt address-book.txt
+            elif [ "$answer" = "find" ]
+            then
+                ./find.sh
+            elif [ "$answer" = "del" ]
+            then
+                ./deletion.sh
+                sort -o temp.txt address-book.txt | cat temp.txt 
+                cp temp.txt address-book.txt
+            elif [ "$answer" = "exit" ]
+            then
+                exit=1
+            else
+                echo "I do not understand the command."
+            fi
+        done
+
+        exit 0

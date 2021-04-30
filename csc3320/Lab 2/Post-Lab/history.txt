@@ -1,0 +1,50 @@
+96  cd ..
+   97  ls
+   98  cp ../../Lab2_P2/ Public/Submission/Lab2/
+   99  ls
+  100  cd Public/Submission/Lab2/
+  101  ls
+  102  cd ../
+  103  ls
+  104  cd ../
+  105  ls
+  106  cd ../
+  107  ls
+  108  ../
+  109  ls
+  110  cd ../
+  111  ls
+  112  cd Lab2_P2/
+  113  ls
+  114  cd public/
+  115  ls
+  116  cd Public/
+  117  ls
+  118  cp ../../../Lab2_P2/ Submission/Lab2/
+  119  ls
+  120  cd Submission/Lab2/
+  121  ls
+  122  cd ../Lab
+  123  ls
+  124  cd ../
+  125  ls
+  126  cd ..
+  127  ls
+  128  cd ..
+  129  ls
+  130  rm -rf ../../Lab2_P2/
+  131  ls
+  132  cd ../
+  133  cd ../../../
+  134  ls
+  135  cd bin/
+  136  ls
+  137  cd ../
+  138  ls
+  139  cd home/
+  140  ls
+  141  cd hgunerli1/
+  142  ls
+  143  history
+  144  history 50
+  145  history 50 > history.txt

@@ -1,0 +1,3 @@
+//myName.c
+#include <stdio.h>                                                                                                              int main() {                                                                                                                                    printf("My name is Hakan Gunerli");                                                                                             return 0;
+} 
