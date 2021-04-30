@@ -1,0 +1,4 @@
+1) False. 
+2) True. 
+3) True.
+4) var has 20 elements and each is 1 word long, each word is 2 bytes long thus it is 40 bytes in total. 
