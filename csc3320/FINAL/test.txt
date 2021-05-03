@@ -1,0 +1,25 @@
+CSc 3320: Systems Programming
+Spring 2021
+Final/Project: Total points = 100
+
+THIS FINAL IS OPTIONAL
+Assigned: 			    23th  Apr 2021, Friday   Noon
+Submission Deadline (if attempting):   2nd May 2021, Sunday, 11.59 PM
+(No extensions. If your submission is not received by this time then it will NOT be accepted.)
+
+Submission instructions:
+Create a Google doc for your submission.
+Start your responses from page 2 of the document and copy these instructions on page 1. 
+Fill in your name, campus ID and panther # in the fields provided. If this information is missing TWO POINTS WILL BE DEDUCTED.
+Keep this page 1 intact. If this submissions instructions page is missing in your submission TWO POINTS WILL BE DEDUCTED.
+Start your responses to each QUESTION on a new page. 
+If you are being asked to write code copy the code into a separate txt file and submit that as well. The code should be executable. E.g. if asked for a C script then provide myfile.c so that we can execute that script. In your answer to the specific question, provide the steps on how to execute your file (like a ReadMe).
+If you are being asked to test code or run specific commands or scripts, provide the evidence of your outputs through a screenshot and/or screen video-recordings and copy the same into the document.
+Upon completion, download a .PDF version of the google doc document and submit the same along with all the supplementary files (videos, pictures, scripts etc).
+
+
+Full Name: 
+
+Campus ID: 
+
+Panther #: 
