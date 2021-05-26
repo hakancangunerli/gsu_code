@@ -15,7 +15,7 @@ This repository is basically set of sample codes, some personal notes, and my ov
 
 ## Authors
 
-- [@hakancangunerli](https://www.github.com/katherinepeterson)
+- [@hakancangunerli](https://www.github.com/hakancangunerli)
 
   
 ## Installation 
@@ -32,7 +32,7 @@ Select the file you want to run, and run
 ```
     
 ## Acknowledgements
-Note: this is not 100% my code, I took a lot of advice from all over the place. also, a legend named Preetham has also helped me a lot during the semesters I've had at GSU. All thanks go to him. 
+Note: this is not 100% my code, I took a lot of advice from all over the place. also, a smart guy named [@preethampython101](https://www.github.com/preethampython101)  has also helped me a lot during the semesters I've had at GSU. All thanks go to him. 
  
 
   
